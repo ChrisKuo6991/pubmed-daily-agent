@@ -1,6 +1,7 @@
 import datetime
 import os
 import xml.etree.ElementTree as ET
+from google import genai
 from jinja2 import Template
 import pandas as pd
 import requests
@@ -12,7 +13,6 @@ SEARCH_TERM = " OR ".join(SEARCH_KEYWORDS)
 MAX_RESULTS = 10
 EXCEL_FILE_PATH = "JCR-ImapctFactor-2025.xlsx"
 
-# 月份轉換字典 (英文簡寫對照數字)
 MONTH_MAP = {
     "jan": "01",
     "feb": "02",
@@ -28,6 +28,40 @@ MONTH_MAP = {
     "dec": "12",
 }
 
+# 初始化 Gemini API 用戶端
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+
+
+def summarize_with_llm(title, abstract):
+    """使用 LLM 將論文標題與摘要總結為 250 字以內的繁體中文解述"""
+    if not ai_client:
+        return "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
+
+    if not abstract or abstract == "無提供摘要。":
+        return "這篇論文未提供原文摘要，無法進行摘要轉譯。"
+
+    prompt = f"""
+你是一位生物醫學與微生物學領域的專家。請根據以下論文標題與摘要，撰寫一份「250字以內」的繁體中文重點解述。
+
+要求：
+1. 語言為繁體中文，文筆通順、專業且精煉。
+2. 說明該研究的核心目的、主要發現或臨床/科學意義。
+3. 嚴格控制字數在 250 字以內，不要列點，直接以精煉的一到兩段文字呈現。
+
+論文標題：{title}
+原文摘要：{abstract}
+"""
+    try:
+        response = ai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+        return response.text.strip()
+    except Exception as e:
+        print(f"❌ LLM 生成摘要失敗: {e}")
+        return "中文摘要生成失敗，請參考英文原文。"
+
 
 def get_full_text(element):
     """遞迴擷取 XML 節點內部的所有純文字 (包含 <i>, <b> 等子標籤內的文字)"""
@@ -41,23 +75,19 @@ def parse_pub_date(pub_date_node):
     if pub_date_node is None:
         return "未知日期"
 
-    # 情況 A: 正常帶有 Year, Month, Day 標籤
     year = pub_date_node.findtext("Year")
     month = pub_date_node.findtext("Month")
     day = pub_date_node.findtext("Day")
 
-    # 情況 B: 某些論文日期會寫在 MedlineDate 標籤中 (例: "2024 Jan-Feb")
     if not year:
         medline_date = pub_date_node.findtext("MedlineDate")
         if medline_date:
-            # 取出前 4 個數字作為年份
             parts = medline_date.split()
             if parts and len(parts[0]) == 4 and parts[0].isdigit():
                 return parts[0]
             return medline_date
         return "未知日期"
 
-    # 格式化月份 (將 Jan/Feb 轉為 01/02)
     if month:
         month_clean = month.strip().lower()[:3]
         if month_clean in MONTH_MAP:
@@ -67,13 +97,11 @@ def parse_pub_date(pub_date_node):
     else:
         month = ""
 
-    # 格式化日期 (補零)
     if day and day.isdigit():
         day = f"{int(day):02d}"
     else:
         day = ""
 
-    # 組合年月日
     if year and month and day:
         return f"{year}-{month}-{day}"
     elif year and month:
@@ -158,14 +186,12 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
     root = ET.fromstring(fetch_res.content)
     articles = []
 
-    for article in root.findall(".//PubmedArticle"):
+    for idx, article in enumerate(root.findall(".//PubmedArticle"), 1):
         pmid = article.findtext(".//PMID")
 
-        # 完整擷取含子標籤的標題
         title_element = article.find(".//ArticleTitle")
         title = get_full_text(title_element) or "無標題"
 
-        # 抓取期刊名稱
         journal_title = (
             article.findtext(".//Journal/Title")
             or article.findtext(".//Journal/ISOAbbreviation")
@@ -174,7 +200,6 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
 
         impact_factor = get_impact_factor(journal_title, if_map)
 
-        # 完整擷取摘要
         abstract_texts = article.findall(".//AbstractText")
         if abstract_texts:
             abstract_parts = [get_full_text(a) for a in abstract_texts]
@@ -182,9 +207,12 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
         else:
             abstract = "無提供摘要。"
 
-        # 🔑 抓取與解析發表年月日
         pub_date_node = article.find(".//Journal/JournalIssue/PubDate")
         pub_date_str = parse_pub_date(pub_date_node)
+
+        # 🔑 呼叫 LLM 產生中文摘要
+        print(f"[{idx}/{max_results}] 正在為 PMID: {pmid} 產生中文摘要...")
+        zh_summary = summarize_with_llm(title, abstract)
 
         articles.append(
             {
@@ -193,7 +221,8 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
                 "journal": journal_title,
                 "impact_factor": impact_factor,
                 "abstract": abstract,
-                "date": pub_date_str,  # 呈現 YYYY-MM-DD
+                "zh_summary": zh_summary,  # 新增 LLM 中文摘要欄位
+                "date": pub_date_str,
                 "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
             }
         )
@@ -207,7 +236,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PubMed 每日論文報告</title>
+    <title>PubMed 每日論文 AI 摘要快訊</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; }
@@ -222,13 +251,23 @@ HTML_TEMPLATE = """
         .meta { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        .abstract { font-size: 14px; color: #444; }
+        
+        /* LLM 中文摘要區塊樣式 */
+        .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
+        .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
+        
+        /* 英文原文摺疊選單 */
+        details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
+        summary { cursor: pointer; font-weight: 500; color: #666; }
+        summary:hover { color: #0056b3; }
+        .abstract-en { margin-top: 8px; line-height: 1.5; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>PubMed 每日最新論文快訊</h1>
+            <h1>PubMed 每日最新論文 AI 快訊</h1>
             <p>搜尋主題：
                 {% for kw in keywords %}
                 <span class="keyword-tag">{{ kw }}</span>
@@ -246,7 +285,18 @@ HTML_TEMPLATE = """
                 <span>📅 發表日期: {{ article.date }}</span>
                 <span>PMID: {{ article.pmid }}</span>
             </div>
-            <div class="abstract">{{ article.abstract }}</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">{{ article.zh_summary }}</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">{{ article.abstract }}</div>
+            </details>
         </div>
         {% endfor %}
     </div>
