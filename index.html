@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PubMed 每日論文報告</title>
+    <title>PubMed 每日論文 AI 摘要快訊</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; }
@@ -19,13 +19,23 @@
         .meta { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        .abstract { font-size: 14px; color: #444; }
+        
+        /* LLM 中文摘要區塊樣式 */
+        .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
+        .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
+        
+        /* 英文原文摺疊選單 */
+        details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
+        summary { cursor: pointer; font-weight: 500; color: #666; }
+        summary:hover { color: #0056b3; }
+        .abstract-en { margin-top: 8px; line-height: 1.5; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>PubMed 每日最新論文快訊</h1>
+            <h1>PubMed 每日最新論文 AI 快訊</h1>
             <p>搜尋主題：
                 
                 <span class="keyword-tag">Microbiome</span>
@@ -35,7 +45,7 @@
                 <span class="keyword-tag">metagenomic</span>
                 
             </p>
-            <p>最後更新時間：2026-07-23 09:34:44 (UTC)</p>
+            <p>最後更新時間：2026-07-23 09:55:27 (UTC)</p>
         </header>
 
         
@@ -47,7 +57,18 @@
                 <span>📅 發表日期: 2027-04-23</span>
                 <span>PMID: 42031645</span>
             </div>
-            <div class="abstract">The gut microbiome plays a crucial role in regulating systemic immunity and has been implicated in several chronic inflammatory diseases. Intestinal expansions of Ruminococcus gnavus (RG), a dominant gut commensal, correlate with disease flares in lupus nephritis (LN), but the underlying mechanism remains unknown. In a Pilot cohort of patients with biopsy-proven LN, subsetted by gut microbiota community, immune status was characterised using bulk-blood RNA sequencing libraries, serum levels of representative host proteins, and levels of immunoglobulin (Ig)G antibodies to the novel lipoglycan (LG) produced by pathogenic RG strains. A Validation LN cohort was evaluated for blood transcriptomic profiles and levels of anti-LG antibodies. In murine models, mechanistic hypotheses were tested after RG gut colonisation or after intraperitoneal injection with an LG preparation, with outcomes determined by transcriptomic analyses, platelet functional readouts, and tissue histology. In a Pilot cohort of patients with LN, RG gut expansions were associated with high-level platelet, neutrophil, and monocyte activation. Serum levels of platelet factor 4 and release of neutrophil extracellular traps (NETs) were significantly higher in patients with high serum IgG antibody against the novel RG-specific LG, a marker of in vivo immune exposure. An LN Validation cohort confirmed these correlates and showed that anti-LG antibodies serve as a surrogate for thromboinflammatory profile in this LN-associated endotype. In mice, gut colonisation with LG-producing RG strains or a single LG injection caused megakaryocytosis and platelet activation; RG colonisation with LG-producing strains induced tubulointerstitial injury with NETosis. In vivo responses to LG toxin were Toll-like receptor 2-dependent. Gut expansions of the RG pathobiont may contribute to autoimmune pathogenesis through the LG toxin and cause LN flares through thromboinflammatory mechanisms in this previously unrecognised LN endotype.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">The gut microbiome plays a crucial role in regulating systemic immunity and has been implicated in several chronic inflammatory diseases. Intestinal expansions of Ruminococcus gnavus (RG), a dominant gut commensal, correlate with disease flares in lupus nephritis (LN), but the underlying mechanism remains unknown. In a Pilot cohort of patients with biopsy-proven LN, subsetted by gut microbiota community, immune status was characterised using bulk-blood RNA sequencing libraries, serum levels of representative host proteins, and levels of immunoglobulin (Ig)G antibodies to the novel lipoglycan (LG) produced by pathogenic RG strains. A Validation LN cohort was evaluated for blood transcriptomic profiles and levels of anti-LG antibodies. In murine models, mechanistic hypotheses were tested after RG gut colonisation or after intraperitoneal injection with an LG preparation, with outcomes determined by transcriptomic analyses, platelet functional readouts, and tissue histology. In a Pilot cohort of patients with LN, RG gut expansions were associated with high-level platelet, neutrophil, and monocyte activation. Serum levels of platelet factor 4 and release of neutrophil extracellular traps (NETs) were significantly higher in patients with high serum IgG antibody against the novel RG-specific LG, a marker of in vivo immune exposure. An LN Validation cohort confirmed these correlates and showed that anti-LG antibodies serve as a surrogate for thromboinflammatory profile in this LN-associated endotype. In mice, gut colonisation with LG-producing RG strains or a single LG injection caused megakaryocytosis and platelet activation; RG colonisation with LG-producing strains induced tubulointerstitial injury with NETosis. In vivo responses to LG toxin were Toll-like receptor 2-dependent. Gut expansions of the RG pathobiont may contribute to autoimmune pathogenesis through the LG toxin and cause LN flares through thromboinflammatory mechanisms in this previously unrecognised LN endotype.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -58,7 +79,18 @@
                 <span>📅 發表日期: 2027-02-10</span>
                 <span>PMID: 42167295</span>
             </div>
-            <div class="abstract">The human gut microbiome shows dynamic variation throughout the lifespan and remarkable spatial organisation within the gastrointestinal tract. Complementing the focus of the first paper of this Series on the human microbiome dynamics and health, which focused on the temporal dynamics of the human gut microbiome, this second Series paper explores its biogeographical signatures, which often reflect distinct physiological niches in gastrointestinal tract regions. The spatial architecture of the gut microbiome is shaped by various factors and has important clinical implications for host homoeostasis, health, and disease. In this Series paper, we discuss current knowledge on the microbial biogeography along the gastrointestinal tract, the factors governing these spatial patterns, and their functional consequences for the host. We further focus on host-microbe interactions mediated by microbial metabolites and their impact on host health. Finally, we summarise the methodological advances that are enabling in-situ high-resolution spatial mapping of the gut microbiome as crucial tools for unravelling the detailed mechanisms of host-microbiome crosstalk. Overall, understanding the principles that govern the spatial ecology of the gut microbiome can inform the development of novel therapies designed to precisely manipulate microbial niches and restore homoeostasis along the gastrointestinal tract, thereby improving human health.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">The human gut microbiome shows dynamic variation throughout the lifespan and remarkable spatial organisation within the gastrointestinal tract. Complementing the focus of the first paper of this Series on the human microbiome dynamics and health, which focused on the temporal dynamics of the human gut microbiome, this second Series paper explores its biogeographical signatures, which often reflect distinct physiological niches in gastrointestinal tract regions. The spatial architecture of the gut microbiome is shaped by various factors and has important clinical implications for host homoeostasis, health, and disease. In this Series paper, we discuss current knowledge on the microbial biogeography along the gastrointestinal tract, the factors governing these spatial patterns, and their functional consequences for the host. We further focus on host-microbe interactions mediated by microbial metabolites and their impact on host health. Finally, we summarise the methodological advances that are enabling in-situ high-resolution spatial mapping of the gut microbiome as crucial tools for unravelling the detailed mechanisms of host-microbiome crosstalk. Overall, understanding the principles that govern the spatial ecology of the gut microbiome can inform the development of novel therapies designed to precisely manipulate microbial niches and restore homoeostasis along the gastrointestinal tract, thereby improving human health.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -69,7 +101,18 @@
                 <span>📅 發表日期: 2027-02-10</span>
                 <span>PMID: 42167294</span>
             </div>
-            <div class="abstract">The colonisation of the human gut microbiome commences at birth and continues to evolve throughout the lifespan. A balanced symbiotic relationship between the host and gut microbiome is essential for maintaining overall health. This two-part Series presents a comprehensive overview of the gut microbiome across temporal and spatial dimensions, considering diurnal, seasonal, and lifespan variations while covering the entire gastrointestinal tract. We also discuss the extrinsic and intrinsic factors that shape the microbial ecosystem and affect host homoeostasis, health, and disease susceptibility. In this first Series paper, we summarise current knowledge on the microbial succession and evolutionary trajectory of the gut microbiome from neonates to adults aged 100 years and older, subsequently focusing on diurnal rhythms and seasonal patterns. We then discuss how these temporal variations in the gut microbiome are determined and how they contribute to beneficial or detrimental health outcomes in the host. Overall, elucidating the multiscale temporal dynamics of the human gut microbiome will open crucial opportunities to expand knowledge of host-microbiome interactions and their biological and clinical implications.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">The colonisation of the human gut microbiome commences at birth and continues to evolve throughout the lifespan. A balanced symbiotic relationship between the host and gut microbiome is essential for maintaining overall health. This two-part Series presents a comprehensive overview of the gut microbiome across temporal and spatial dimensions, considering diurnal, seasonal, and lifespan variations while covering the entire gastrointestinal tract. We also discuss the extrinsic and intrinsic factors that shape the microbial ecosystem and affect host homoeostasis, health, and disease susceptibility. In this first Series paper, we summarise current knowledge on the microbial succession and evolutionary trajectory of the gut microbiome from neonates to adults aged 100 years and older, subsequently focusing on diurnal rhythms and seasonal patterns. We then discuss how these temporal variations in the gut microbiome are determined and how they contribute to beneficial or detrimental health outcomes in the host. Overall, elucidating the multiscale temporal dynamics of the human gut microbiome will open crucial opportunities to expand knowledge of host-microbiome interactions and their biological and clinical implications.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -80,7 +123,18 @@
                 <span>📅 發表日期: 2027-02</span>
                 <span>PMID: 42471832</span>
             </div>
-            <div class="abstract">Inflammatory bowel disease (IBD) encompasses a group of chronic inflammatory disorders of the bowel, characterized by complex etiologies that are closely associated with an imbalance in intestinal microbiota, abnormal immune activation, and compromised intestinal mucosal barrier function. Current therapeutic options are limited by low response rates and metabolic disorders, underscoring the urgent need for innovative clinical treatments. Lactiplantibacillus plantarum (formerly Lactobacillus plantarum, hereafter referred to as L. plantarum) has emerged as a focal point in IBD research due to its capacity to modulate the intestinal microenvironment and its robust probiotic properties. This review elucidates the multifaceted regulatory mechanisms of L. plantarum in IBD, including its role in modulating host immune responses, mitigating oxidative damage, restoring intestinal mucosal barrier integrity, and reestablishing microbiota balance. Additionally, it highlights advancements in L. plantarum synbiotic research and underscores the necessity for a "basic research-technology translation-clinical application" framework in future investigations, while also exploring the potential of novel targeted delivery technologies. Evidence indicates that L. plantarum enhances intestinal health through multi-target synergy, with its probiotic effects and innovative delivery systems presenting significant application potential. This review offers insights into the mechanisms underlying the action of L. plantarum, establishing a theoretical foundation for the development of novel food therapies aimed at treating IBD. It further contributes to the integration of such therapies within precision medicine approaches for IBD.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">Inflammatory bowel disease (IBD) encompasses a group of chronic inflammatory disorders of the bowel, characterized by complex etiologies that are closely associated with an imbalance in intestinal microbiota, abnormal immune activation, and compromised intestinal mucosal barrier function. Current therapeutic options are limited by low response rates and metabolic disorders, underscoring the urgent need for innovative clinical treatments. Lactiplantibacillus plantarum (formerly Lactobacillus plantarum, hereafter referred to as L. plantarum) has emerged as a focal point in IBD research due to its capacity to modulate the intestinal microenvironment and its robust probiotic properties. This review elucidates the multifaceted regulatory mechanisms of L. plantarum in IBD, including its role in modulating host immune responses, mitigating oxidative damage, restoring intestinal mucosal barrier integrity, and reestablishing microbiota balance. Additionally, it highlights advancements in L. plantarum synbiotic research and underscores the necessity for a "basic research-technology translation-clinical application" framework in future investigations, while also exploring the potential of novel targeted delivery technologies. Evidence indicates that L. plantarum enhances intestinal health through multi-target synergy, with its probiotic effects and innovative delivery systems presenting significant application potential. This review offers insights into the mechanisms underlying the action of L. plantarum, establishing a theoretical foundation for the development of novel food therapies aimed at treating IBD. It further contributes to the integration of such therapies within precision medicine approaches for IBD.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -91,7 +145,18 @@
                 <span>📅 發表日期: 2026-12-31</span>
                 <span>PMID: 42482368</span>
             </div>
-            <div class="abstract">Rheumatoid arthritis (RA) is a chronic autoimmune disorder characterized by persistent synovial inflammation, progressive joint destruction, and functional disability. Emerging evidence indicates that gut microbiota dysbiosis and host protein glycosylation play essential roles in regulating immune signaling during RA progression. In this study, we demonstrate that the probiotic strain Lactobacillus casei (abbreviated as L. casei) modulates gut microbial composition and enhances butyrate production, consequently impacting HDAC/NF-κB signaling and O-GlcNAc glycosylation. The administration of L. casei significantly alleviated arthritis symptoms and synovial damage, reduced serum inflammatory cytokine levels, restructured the gut microbiota structure, and enhanced butyrate production. Moreover, L. casei markedly increased O-GlcNAcylation of key immune signaling proteins, such as STAB1, by downregulating O-GlcNAcase (OGA) activity. Importantly, L. casei also modulated histone deacetylase (HDAC) expression and inhibited NF-κB pathway activation, synergistically contributing to glycosylation-mediated anti-inflammatory effects. This study provides evidence that L. casei alleviates synovial inflammation and contributes to immune homeostasis in rheumatoid arthritis by collectively improving the joint immune microenvironment and mitigating inflammatory responses.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">Rheumatoid arthritis (RA) is a chronic autoimmune disorder characterized by persistent synovial inflammation, progressive joint destruction, and functional disability. Emerging evidence indicates that gut microbiota dysbiosis and host protein glycosylation play essential roles in regulating immune signaling during RA progression. In this study, we demonstrate that the probiotic strain Lactobacillus casei (abbreviated as L. casei) modulates gut microbial composition and enhances butyrate production, consequently impacting HDAC/NF-κB signaling and O-GlcNAc glycosylation. The administration of L. casei significantly alleviated arthritis symptoms and synovial damage, reduced serum inflammatory cytokine levels, restructured the gut microbiota structure, and enhanced butyrate production. Moreover, L. casei markedly increased O-GlcNAcylation of key immune signaling proteins, such as STAB1, by downregulating O-GlcNAcase (OGA) activity. Importantly, L. casei also modulated histone deacetylase (HDAC) expression and inhibited NF-κB pathway activation, synergistically contributing to glycosylation-mediated anti-inflammatory effects. This study provides evidence that L. casei alleviates synovial inflammation and contributes to immune homeostasis in rheumatoid arthritis by collectively improving the joint immune microenvironment and mitigating inflammatory responses.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -102,7 +167,18 @@
                 <span>📅 發表日期: 2026-12-31</span>
                 <span>PMID: 42470108</span>
             </div>
-            <div class="abstract">Ulcerative colitis (UC) is a systemic disease that can involve multiple organs, and hepatobiliary diseases in UC patients are frequently observed. However, the pathogenesis of UC and its associated hepatobiliary complications remains elusive, and limited therapeutic options are available. This study revealed that disrupted hepatic lipid metabolism plays a pivotal role in driving the progression of UC and its extraintestinal hepatobiliary manifestations. Mechanistically, colitis-elevated circulating endogenous corticosterone (CORT) mediates the downregulation of hepatic LXRα-SCD1 signaling, resulting in diminished monounsaturated fatty acid (MUFA), reduced unsaturated lysophospholipids, and the accumulation of alkyl lysophospholipids, ceramide and hexosylceramide. These alterations contribute to liver lipotoxicity and, in turn, exacerbate colitis. A similar lipid profile is observed in UC patients. Importantly, pristimerin, a natural compound structurally similar to the star molecule celastrol, has been demonstrated to alleviate UC and concomitant liver injury by remodeling hepatic lipid metabolism in a microbiota-dependent manner. The gut commensal Lactobacillus johnsonii mediates the effects of PSM by activating hepatic LXRα-SCD1 signaling and increasing the potential anti-inflammation lipid species LPC20:2 and LPC20:3. This investigation suggests a novel therapeutic strategy for UC and associated liver injury based on the L. johnsonii-hepatic LXRα-SCD1 axis. This study also opens new avenues for mechanistic exploration of systemic diseases and therapeutic strategies of multi-organ comorbidity.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">Ulcerative colitis (UC) is a systemic disease that can involve multiple organs, and hepatobiliary diseases in UC patients are frequently observed. However, the pathogenesis of UC and its associated hepatobiliary complications remains elusive, and limited therapeutic options are available. This study revealed that disrupted hepatic lipid metabolism plays a pivotal role in driving the progression of UC and its extraintestinal hepatobiliary manifestations. Mechanistically, colitis-elevated circulating endogenous corticosterone (CORT) mediates the downregulation of hepatic LXRα-SCD1 signaling, resulting in diminished monounsaturated fatty acid (MUFA), reduced unsaturated lysophospholipids, and the accumulation of alkyl lysophospholipids, ceramide and hexosylceramide. These alterations contribute to liver lipotoxicity and, in turn, exacerbate colitis. A similar lipid profile is observed in UC patients. Importantly, pristimerin, a natural compound structurally similar to the star molecule celastrol, has been demonstrated to alleviate UC and concomitant liver injury by remodeling hepatic lipid metabolism in a microbiota-dependent manner. The gut commensal Lactobacillus johnsonii mediates the effects of PSM by activating hepatic LXRα-SCD1 signaling and increasing the potential anti-inflammation lipid species LPC20:2 and LPC20:3. This investigation suggests a novel therapeutic strategy for UC and associated liver injury based on the L. johnsonii-hepatic LXRα-SCD1 axis. This study also opens new avenues for mechanistic exploration of systemic diseases and therapeutic strategies of multi-organ comorbidity.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -113,7 +189,18 @@
                 <span>📅 發表日期: 2026-12-31</span>
                 <span>PMID: 42470107</span>
             </div>
-            <div class="abstract">Although opioids are effective analgesics, they can lead to problematic drug use behaviors that underlie opioid use disorder (OUD). Opioids also cause gut microbiota dysbiosis, which is linked to altered opioid responses. We used a longitudinal paradigm of voluntary oral morphine self-administration to capture multiple facets of drug seeking and preserve both individual behavioral responses and individual gut microbiota variation to investigate the role of the gut microbiota in a mouse model of OUD. Although all the mice consumed morphine, only a subset of the mice that transitioned to a state we defined statistically as compulsive. In compulsive mice, morphine constricted natural variability and fragmented the microbiota community networks, which convergently reorganized to form robust novel connections post-morphine. In contrast, the more variable communities of non-compulsive mice were highly interconnected during morphine disturbance and displayed more continuity post-morphine, suggesting greater flexibility and adaptability. Compulsive mice displayed a greater loss of functional diversity and a shift in favor of potential pathobionts, whereas non-compulsive mice better preserved genera associated with gut health and broader functional diversity. These findings highlight the potential role of persistent and stable opioid-induced microbiota dysbiosis in long-term behavioral changes underlying OUD and contributing to vulnerability to relapse.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">Although opioids are effective analgesics, they can lead to problematic drug use behaviors that underlie opioid use disorder (OUD). Opioids also cause gut microbiota dysbiosis, which is linked to altered opioid responses. We used a longitudinal paradigm of voluntary oral morphine self-administration to capture multiple facets of drug seeking and preserve both individual behavioral responses and individual gut microbiota variation to investigate the role of the gut microbiota in a mouse model of OUD. Although all the mice consumed morphine, only a subset of the mice that transitioned to a state we defined statistically as compulsive. In compulsive mice, morphine constricted natural variability and fragmented the microbiota community networks, which convergently reorganized to form robust novel connections post-morphine. In contrast, the more variable communities of non-compulsive mice were highly interconnected during morphine disturbance and displayed more continuity post-morphine, suggesting greater flexibility and adaptability. Compulsive mice displayed a greater loss of functional diversity and a shift in favor of potential pathobionts, whereas non-compulsive mice better preserved genera associated with gut health and broader functional diversity. These findings highlight the potential role of persistent and stable opioid-induced microbiota dysbiosis in long-term behavioral changes underlying OUD and contributing to vulnerability to relapse.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -124,7 +211,18 @@
                 <span>📅 發表日期: 2026-12-31</span>
                 <span>PMID: 42464572</span>
             </div>
-            <div class="abstract">Intestinal eukaryotes, often neglected in gut microbiome studies, play crucial roles in human health and cause life-threatening diseases affecting millions worldwide. This neglect has also been driven by the underrepresentation of samples from regions with a high prevalence of (parasitic) intestinal eukaryotes. As a result, the overall understanding of how intestinal eukaryotes vary among broad lifestyle and socioeconomic differences, remains limited. Addressing this gap is increasingly urgent given the global rise of urbanization and industrialization and their profound effects on lifestyle, pathogen exposure, and environmental factors. We characterized the diversity and composition of eukaryotic and bacterial microbiota in 1387 fecal samples from Madagascar (Andina, Ankazomborona, Tsiroanomandidy) and Germany (Kiel), spanning a composite gradient of urbanization-associated lifestyles. Using a parallel approach of 18S V4-V5 rRNA and 16S V3-V4 rRNA amplicon gene sequencing, we identified distinct regional patterns in eukaryotic and bacterial community composition. Malagasy cohorts showed higher prevalence of helminths (e.g. Schistosoma, Necator) and protozoa (e.g. Entamoeba, Dientamoeba). Notably, the diversity of particularly food-associated fungi increased along the composite urbanization-associated lifestyle gradient, peaking in samples from Germany. Bacterial 16S amplicon sequencing confirmed and extended known geographical differences, showing a dominance of Bacteroides in Germany versus Prevotella and Firmicutes in Madagascar. This work highlights the importance of integrating eukaryotic and prokaryotic data, as well as considering different lifestyle-associated factors in microbiome research. We further highlight the need for deeper investigation into the role of dietary and environmental fungi in the human gut ecosystem.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">Intestinal eukaryotes, often neglected in gut microbiome studies, play crucial roles in human health and cause life-threatening diseases affecting millions worldwide. This neglect has also been driven by the underrepresentation of samples from regions with a high prevalence of (parasitic) intestinal eukaryotes. As a result, the overall understanding of how intestinal eukaryotes vary among broad lifestyle and socioeconomic differences, remains limited. Addressing this gap is increasingly urgent given the global rise of urbanization and industrialization and their profound effects on lifestyle, pathogen exposure, and environmental factors. We characterized the diversity and composition of eukaryotic and bacterial microbiota in 1387 fecal samples from Madagascar (Andina, Ankazomborona, Tsiroanomandidy) and Germany (Kiel), spanning a composite gradient of urbanization-associated lifestyles. Using a parallel approach of 18S V4-V5 rRNA and 16S V3-V4 rRNA amplicon gene sequencing, we identified distinct regional patterns in eukaryotic and bacterial community composition. Malagasy cohorts showed higher prevalence of helminths (e.g. Schistosoma, Necator) and protozoa (e.g. Entamoeba, Dientamoeba). Notably, the diversity of particularly food-associated fungi increased along the composite urbanization-associated lifestyle gradient, peaking in samples from Germany. Bacterial 16S amplicon sequencing confirmed and extended known geographical differences, showing a dominance of Bacteroides in Germany versus Prevotella and Firmicutes in Madagascar. This work highlights the importance of integrating eukaryotic and prokaryotic data, as well as considering different lifestyle-associated factors in microbiome research. We further highlight the need for deeper investigation into the role of dietary and environmental fungi in the human gut ecosystem.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -135,7 +233,18 @@
                 <span>📅 發表日期: 2026-12-31</span>
                 <span>PMID: 42464430</span>
             </div>
-            <div class="abstract">Cronobacter sakazakii is an opportunistic foodborne pathogen known to cause severe neonatal infections. However, its subclinical effects on human health remain largely unexplored. Here, we report that intestinal colonization by Cronobacter is potentially correlated with human neurobehavioral alterations in the absence of bacterial translocation across host barriers. Analysis of fecal microbiota from the children in GUSTO cohort revealed that Cronobacter abundance was significantly and positively correlated with their emotional reactivity and affective problem scores, suggesting an association between gut Cronobacter colonization and emotional dysfunction. Using a zebrafish larvae model, we demonstrated that enteric colonization by C. sakazakii ATCC 25944 triggered a distinctive bending phenotype and locomotor instability, indicative of central nervous system (CNS) disturbance. Multi-omics profiling revealed upregulation of genes related to circadian rhythm (e.g., per2, nr1d1, nr1d2) and neuropsychiatric markers (hint1), alongside metabolic dysregulation involving lipid classes linked to neurodegenerative stress. Random mutagenesis coupled with whole-genome sequencing identified modifier variants in genes associated with lipopolysaccharide (LPS) biosynthesis and fimbrial adhesion, which attenuated the neurotoxic phenotype. LPS isolated from wild-type C. sakazakii, but not from mutants, reproduced the CNS impairment phenotype, highlighting its crucial virulence role. Collectively, our findings provide the first evidence that enteric Cronobacter colonization may affect human emotional development via gut-derived LPS signaling, emphasizing its underestimated role in the gut-brain axis and neurobehavioral health.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">Cronobacter sakazakii is an opportunistic foodborne pathogen known to cause severe neonatal infections. However, its subclinical effects on human health remain largely unexplored. Here, we report that intestinal colonization by Cronobacter is potentially correlated with human neurobehavioral alterations in the absence of bacterial translocation across host barriers. Analysis of fecal microbiota from the children in GUSTO cohort revealed that Cronobacter abundance was significantly and positively correlated with their emotional reactivity and affective problem scores, suggesting an association between gut Cronobacter colonization and emotional dysfunction. Using a zebrafish larvae model, we demonstrated that enteric colonization by C. sakazakii ATCC 25944 triggered a distinctive bending phenotype and locomotor instability, indicative of central nervous system (CNS) disturbance. Multi-omics profiling revealed upregulation of genes related to circadian rhythm (e.g., per2, nr1d1, nr1d2) and neuropsychiatric markers (hint1), alongside metabolic dysregulation involving lipid classes linked to neurodegenerative stress. Random mutagenesis coupled with whole-genome sequencing identified modifier variants in genes associated with lipopolysaccharide (LPS) biosynthesis and fimbrial adhesion, which attenuated the neurotoxic phenotype. LPS isolated from wild-type C. sakazakii, but not from mutants, reproduced the CNS impairment phenotype, highlighting its crucial virulence role. Collectively, our findings provide the first evidence that enteric Cronobacter colonization may affect human emotional development via gut-derived LPS signaling, emphasizing its underestimated role in the gut-brain axis and neurobehavioral health.</div>
+            </details>
         </div>
         
         <div class="card">
@@ -146,7 +255,18 @@
                 <span>📅 發表日期: 2026-12-31</span>
                 <span>PMID: 42464117</span>
             </div>
-            <div class="abstract">Inflammatory bowel disease (IBD), including Crohn's disease and ulcerative colitis, is increasingly recognized not merely as an immune-mediated disorder, but as a systems-level condition arising from dynamic interactions among host genetics, environmental exposures, the gut microbiome, and epigenetic regulation. While genetic susceptibility confers risk, accumulating evidence indicates that epigenetic mechanisms act as molecular integrators that translate environmental and microbial signals into sustained transcriptional programs governing immune tolerance, epithelial integrity and tissue repair. Concurrently, intestinal dysbiosis, characterized by loss of short-chain fatty acid-producing commensals and expansion of pro-inflammatory taxa, reshapes host metabolism and chromatin states through microbial-derived metabolites including short-chain fatty acids, secondary bile acids, and tryptophan catabolites. These metabolites affect epigenetic enzymes and modulate the epigenetic chromatin landscape as well as mitochondrial bioenergetics, linking microbial ecology to inflammatory gene regulation. In turn, epigenetic alterations in epithelial and immune compartments influence antimicrobial defense, barrier function, and cytokine networks, thereby sculpting microbial community organization. This bidirectional microbiome-epigenome dialogue creates self-reinforcing circuits that can either sustain mucosal homeostasis or drive chronic inflammation and colitis-associated tumorigenesis. In this review, we synthesize emerging insights into the microbiome-epigenome-mitochondrial axis in IBD and propose a conceptual framework in which metabolic, microbial, and genome-mediated signals converge to determine disease trajectory. We discuss how this integrative perspective may assist biomarker discovery and therapeutic innovation, including epigenetic modulators and microbiota-targeted interventions. Understanding IBD as a dynamically regulated host-microbe ecosystem may accelerate the development of precision strategies aimed at restoring resilient mucosal equilibrium.</div>
+            
+            <!-- AI 中文解述區塊 -->
+            <div class="ai-summary">
+                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
+                <div class="ai-summary-content">中文摘要生成失敗，請參考英文原文。</div>
+            </div>
+
+            <!-- 英文原文摘要摺疊選單 -->
+            <details>
+                <summary>查看英文原文摘要 (Abstract)</summary>
+                <div class="abstract-en">Inflammatory bowel disease (IBD), including Crohn's disease and ulcerative colitis, is increasingly recognized not merely as an immune-mediated disorder, but as a systems-level condition arising from dynamic interactions among host genetics, environmental exposures, the gut microbiome, and epigenetic regulation. While genetic susceptibility confers risk, accumulating evidence indicates that epigenetic mechanisms act as molecular integrators that translate environmental and microbial signals into sustained transcriptional programs governing immune tolerance, epithelial integrity and tissue repair. Concurrently, intestinal dysbiosis, characterized by loss of short-chain fatty acid-producing commensals and expansion of pro-inflammatory taxa, reshapes host metabolism and chromatin states through microbial-derived metabolites including short-chain fatty acids, secondary bile acids, and tryptophan catabolites. These metabolites affect epigenetic enzymes and modulate the epigenetic chromatin landscape as well as mitochondrial bioenergetics, linking microbial ecology to inflammatory gene regulation. In turn, epigenetic alterations in epithelial and immune compartments influence antimicrobial defense, barrier function, and cytokine networks, thereby sculpting microbial community organization. This bidirectional microbiome-epigenome dialogue creates self-reinforcing circuits that can either sustain mucosal homeostasis or drive chronic inflammation and colitis-associated tumorigenesis. In this review, we synthesize emerging insights into the microbiome-epigenome-mitochondrial axis in IBD and propose a conceptual framework in which metabolic, microbial, and genome-mediated signals converge to determine disease trajectory. We discuss how this integrative perspective may assist biomarker discovery and therapeutic innovation, including epigenetic modulators and microbiota-targeted interventions. Understanding IBD as a dynamically regulated host-microbe ecosystem may accelerate the development of precision strategies aimed at restoring resilient mucosal equilibrium.</div>
+            </details>
         </div>
         
     </div>
