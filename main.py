@@ -33,8 +33,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 
-def summarize_with_llm(title, abstract):
-    """使用 LLM 將論文標題與摘要總結為 250 字以內的繁體中文解述"""
+def summarize_with_llm(title, abstract, retries=3, delay=3):
+    """使用 LLM 將論文標題與摘要總結為 250 字以內的繁體中文解述 (含 429 自動重試機制)"""
     if not GEMINI_API_KEY:
         print("❌ 錯誤: 未找到 GEMINI_API_KEY 環境變數！")
         return "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
@@ -53,17 +53,36 @@ def summarize_with_llm(title, abstract):
 論文標題：{title}
 原文摘要：{abstract}
 """
-    try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        # 🔑 已更新為 gemini-2.0-flash
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
-        return response.text.strip()
-    except Exception as e:
-        print(f"❌ Gemini API 呼叫失敗，原因: {type(e).__name__} - {e}")
-        return "中文摘要生成失敗，請參考英文原文。"
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    # 🔑 自動重試機制 (Handling 429 Rate Limit)
+    for attempt in range(1, retries + 1):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+            )
+            # 呼叫成功後強制暫停 2 秒，避免下一次迴圈瞬間衝高 RPM
+            time.sleep(2)
+            return response.text.strip()
+
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                wait_time = delay * (2 ** (attempt - 1))  # 指數型退避: 3s, 6s, 12s...
+                print(
+                    f"⚠️ 觸發 API 頻率限制 (429)，等待 {wait_time} 秒後進行第 {attempt}/{retries} 次重試..."
+                )
+                time.sleep(wait_time)
+            else:
+                print(
+                    f"❌ Gemini API 呼叫失敗，原因: {type(e).__name__} - {e}"
+                )
+                return "中文摘要生成失敗，請參考英文原文。"
+
+    print("❌ 已達到最大重試次數，無法取得中文摘要。")
+    return "中文摘要生成失敗 (請求頻率過高)，請參考英文原文。"
         
 
 def get_full_text(element):
