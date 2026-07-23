@@ -54,18 +54,17 @@ def summarize_with_llm(title, abstract):
 原文摘要：{abstract}
 """
     try:
-        # 使用 SDK 建議的標準建立與呼叫方式
         client = genai.Client(api_key=GEMINI_API_KEY)
+        # 🔑 已更新為 gemini-2.0-flash
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt,
         )
         return response.text.strip()
     except Exception as e:
-        # 🔑 印出詳細錯誤訊息，方便在 GitHub Actions 日誌中查看原因
         print(f"❌ Gemini API 呼叫失敗，原因: {type(e).__name__} - {e}")
         return "中文摘要生成失敗，請參考英文原文。"
-
+        
 
 def get_full_text(element):
     """遞迴擷取 XML 節點內部的所有純文字 (包含 <i>, <b> 等子標籤內的文字)"""
