@@ -7,7 +7,7 @@ import requests
 
 SEARCH_TERM = "Microbiome"
 MAX_RESULTS = 10  # 抓取前 10 篇論文
-EXCEL_FILE_PATH = "journal_if.xlsx"  # Excel 檔案路徑
+EXCEL_FILE_PATH = "JCR-ImapctFactor-2025.xlsx"  # Excel 檔案路徑
 
 
 # -------------------------------------------------------------------
