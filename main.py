@@ -64,7 +64,7 @@ def summarize_with_llm(title, abstract, retries=3, delay=3):
                 contents=prompt,
             )
             # 呼叫成功後強制暫停 2 秒，避免下一次迴圈瞬間衝高 RPM
-            time.sleep(2)
+            time.sleep(30)
             return response.text.strip()
 
         except Exception as e:
