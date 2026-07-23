@@ -1,2 +1,5 @@
+Plaintext
 requests
 jinja2
+pandas
+openpyxl
