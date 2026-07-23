@@ -35,7 +35,8 @@ ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 def summarize_with_llm(title, abstract):
     """使用 LLM 將論文標題與摘要總結為 250 字以內的繁體中文解述"""
-    if not ai_client:
+    if not GEMINI_API_KEY:
+        print("❌ 錯誤: 未找到 GEMINI_API_KEY 環境變數！")
         return "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
 
     if not abstract or abstract == "無提供摘要。":
@@ -53,13 +54,16 @@ def summarize_with_llm(title, abstract):
 原文摘要：{abstract}
 """
     try:
-        response = ai_client.models.generate_content(
+        # 使用 SDK 建議的標準建立與呼叫方式
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
         )
         return response.text.strip()
     except Exception as e:
-        print(f"❌ LLM 生成摘要失敗: {e}")
+        # 🔑 印出詳細錯誤訊息，方便在 GitHub Actions 日誌中查看原因
+        print(f"❌ Gemini API 呼叫失敗，原因: {type(e).__name__} - {e}")
         return "中文摘要生成失敗，請參考英文原文。"
 
 
