@@ -34,6 +34,9 @@ jobs:
 
       # 4. 執行 Python 腳本產生 index.html
       - name: Run Python script
+        env:
+          # 將 GitHub Secrets 帶入環境變數中供 Python 讀取
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python main.py
 
