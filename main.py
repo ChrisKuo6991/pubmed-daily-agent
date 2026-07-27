@@ -328,7 +328,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <header>
-            <h1>PubMed 每日最新論文 AI 快訊</h1>
+            <h1>PubMed 每日最新論文 AI 快訊 by 克里斯</h1>
             <p>搜尋主題：
                 {% for kw in keywords %}
                 <span class="keyword-tag">{{ kw }}</span>
