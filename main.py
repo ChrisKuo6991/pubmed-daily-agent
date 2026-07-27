@@ -34,8 +34,13 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 
-def summarize_with_llm(title, abstract, retries=4, delay=10):
-    """使用 LLM 將論文標題與摘要總結為 250 字以內的繁體中文解述 (強化版重試機制)"""
+# 🔑 定義模型優先順序 (優先使用 2.0-flash，耗盡時自動切換至 1.5-flash)
+PRIMARY_MODEL = "gemini-2.0-flash"
+FALLBACK_MODEL = "gemini-1.5-flash"
+
+
+def summarize_with_llm(title, abstract, retries=3, delay=5):
+    """使用 LLM 將論文標題與摘要總結為繁體中文解述 (支援自動退避與 Model Fallback 機制)"""
     if not GEMINI_API_KEY:
         print("❌ 錯誤: 未找到 GEMINI_API_KEY 環境變數！")
         return "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
@@ -47,51 +52,59 @@ def summarize_with_llm(title, abstract, retries=4, delay=10):
 你是一位生物醫學與微生物學領域的專家。請根據以下論文標題與摘要，撰寫一份「250字以內」的繁體中文重點解述。
 
 要求：
-1. 語言為繁體中文，文筆通順、專業且精練。
+1. 語言為繁體中文，文筆通順、專業且精煉。
 2. 說明該研究的核心目的、主要發現或臨床/科學意義。
-3. 嚴格控制字數在 250 字以內，不要列點，直接以精練的一到兩段文字呈現。
+3. 嚴格控制字數在 250 字以內，不要列點，直接以精煉的一到兩段文字呈現。
 
 論文標題：{title}
 原文摘要：{abstract}
 """
 
-    for attempt in range(1, retries + 1):
-        try:
-            # 🔑 每次重試都重新宣告 Client，確保連線乾淨
-            client = genai.Client(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-            )
-
-            # 呼叫成功，請求間隔保持 3 秒即可（不用到 30 秒）
-            time.sleep(3)
-            return response.text.strip()
-
-        except Exception as e:
-            err_str = str(e).lower()
-            # 🔑 擴充 429 與 Quota 限流關鍵字涵蓋範圍
-            is_rate_limit = any(
-                k in err_str
-                for k in ["429", "resource_exhausted", "quota", "limit"]
-            )
-
-            if is_rate_limit and attempt < retries:
-                wait_time = delay * (2 ** (attempt - 1))  # 10s, 20s, 40s...
-                print(
-                    f"⚠️ 觸發 API 限制 (429/Quota)，等待 {wait_time} 秒後進行第 {attempt}/{retries} 次重試..."
+    # 嘗試呼叫 API 的內部閉包函式
+    def _call_api(model_name):
+        for attempt in range(1, retries + 1):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
                 )
-                time.sleep(wait_time)
-            else:
-                # 只有非限流錯誤（如 Key 錯誤/網路斷線）或已達最大重試次數時才放棄
-                print(
-                    f"❌ Gemini API 呼叫失敗 (第 {attempt} 次)，原因: {type(e).__name__} - {e}"
+                time.sleep(2)  # 成功呼叫後輕微冷卻，保持在安全 RPM 內
+                return response.text.strip()
+            except Exception as e:
+                err_str = str(e).lower()
+                # 判斷是否為 429 或配額超限
+                is_rate_limit = any(
+                    k in err_str
+                    for k in ["429", "resource_exhausted", "quota", "limit"]
                 )
-                if not is_rate_limit:
-                    break  # 非 429 錯誤不用再重試，直接跳出
 
-    return "中文摘要生成失敗，請參考英文原文。"
+                if is_rate_limit and attempt < retries:
+                    wait_time = delay * attempt
+                    print(
+                        f"⚠️ [{model_name}] 觸發 Rate Limit/Quota (429)，等待 {wait_time} 秒後重試 ({attempt}/{retries})..."
+                    )
+                    time.sleep(wait_time)
+                else:
+                    # 向上拋出，交由外層處理 Fallback 或報錯
+                    raise e
+
+    # 1. 先嘗試主要模型 (gemini-2.0-flash)
+    try:
+        return _call_api(PRIMARY_MODEL)
+    except Exception as e:
+        print(
+            f"⚠️ 主要模型 [{PRIMARY_MODEL}] 呼叫失敗/配額耗盡: {e}\n🔄 切換至備用模型 [{FALLBACK_MODEL}]..."
+        )
+
+    # 2. 主要模型失敗（例如每日配額用完），切換至備用模型 (gemini-1.5-flash)
+    try:
+        return _call_api(FALLBACK_MODEL)
+    except Exception as e:
+        print(f"❌ 備用模型 [{FALLBACK_MODEL}] 亦呼叫失敗: {e}")
+
+    return "中文摘要生成失敗 (API 配額超限)，請參考英文原文。"
         
 
 def get_full_text(element):
