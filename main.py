@@ -5,6 +5,7 @@ from google import genai
 from jinja2 import Template
 import pandas as pd
 import requests
+import time
 
 # 搜尋關鍵字與設定
 SEARCH_KEYWORDS = ["Microbiome", "metagenome", "metagenomic"]
