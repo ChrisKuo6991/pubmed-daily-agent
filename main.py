@@ -33,8 +33,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 
-def summarize_with_llm(title, abstract, retries=3, delay=3):
-    """使用 LLM 將論文標題與摘要總結為 250 字以內的繁體中文解述 (含 429 自動重試機制)"""
+def summarize_with_llm(title, abstract, retries=4, delay=10):
+    """使用 LLM 將論文標題與摘要總結為 250 字以內的繁體中文解述 (強化版重試機制)"""
     if not GEMINI_API_KEY:
         print("❌ 錯誤: 未找到 GEMINI_API_KEY 環境變數！")
         return "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
@@ -46,43 +46,51 @@ def summarize_with_llm(title, abstract, retries=3, delay=3):
 你是一位生物醫學與微生物學領域的專家。請根據以下論文標題與摘要，撰寫一份「250字以內」的繁體中文重點解述。
 
 要求：
-1. 語言為繁體中文，文筆通順、專業且精煉。
+1. 語言為繁體中文，文筆通順、專業且精練。
 2. 說明該研究的核心目的、主要發現或臨床/科學意義。
-3. 嚴格控制字數在 250 字以內，不要列點，直接以精煉的一到兩段文字呈現。
+3. 嚴格控制字數在 250 字以內，不要列點，直接以精練的一到兩段文字呈現。
 
 論文標題：{title}
 原文摘要：{abstract}
 """
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
-
-    # 🔑 自動重試機制 (Handling 429 Rate Limit)
     for attempt in range(1, retries + 1):
         try:
+            # 🔑 每次重試都重新宣告 Client，確保連線乾淨
+            client = genai.Client(api_key=GEMINI_API_KEY)
+
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
                 contents=prompt,
             )
-            # 呼叫成功後強制暫停 2 秒，避免下一次迴圈瞬間衝高 RPM
-            time.sleep(30)
+
+            # 呼叫成功，請求間隔保持 3 秒即可（不用到 30 秒）
+            time.sleep(3)
             return response.text.strip()
 
         except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                wait_time = delay * (2 ** (attempt - 1))  # 指數型退避: 3s, 6s, 12s...
+            err_str = str(e).lower()
+            # 🔑 擴充 429 與 Quota 限流關鍵字涵蓋範圍
+            is_rate_limit = any(
+                k in err_str
+                for k in ["429", "resource_exhausted", "quota", "limit"]
+            )
+
+            if is_rate_limit and attempt < retries:
+                wait_time = delay * (2 ** (attempt - 1))  # 10s, 20s, 40s...
                 print(
-                    f"⚠️ 觸發 API 頻率限制 (429)，等待 {wait_time} 秒後進行第 {attempt}/{retries} 次重試..."
+                    f"⚠️ 觸發 API 限制 (429/Quota)，等待 {wait_time} 秒後進行第 {attempt}/{retries} 次重試..."
                 )
                 time.sleep(wait_time)
             else:
+                # 只有非限流錯誤（如 Key 錯誤/網路斷線）或已達最大重試次數時才放棄
                 print(
-                    f"❌ Gemini API 呼叫失敗，原因: {type(e).__name__} - {e}"
+                    f"❌ Gemini API 呼叫失敗 (第 {attempt} 次)，原因: {type(e).__name__} - {e}"
                 )
-                return "中文摘要生成失敗，請參考英文原文。"
+                if not is_rate_limit:
+                    break  # 非 429 錯誤不用再重試，直接跳出
 
-    print("❌ 已達到最大重試次數，無法取得中文摘要。")
-    return "中文摘要生成失敗 (請求頻率過高)，請參考英文原文。"
+    return "中文摘要生成失敗，請參考英文原文。"
         
 
 def get_full_text(element):
