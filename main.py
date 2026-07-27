@@ -197,21 +197,40 @@ def get_impact_factor(journal_title, if_map):
 
 
 def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
-    """使用 NCBI E-utilities API 抓取最新論文內容"""
+    """使用 NCBI E-utilities API 抓取當日最新論文內容"""
     print(f"[{datetime.datetime.now()}] 開始搜尋 PubMed: '{keyword}'...")
 
+    # 🔑 取得今天的日期格式 (YYYY/MM/DD)
+    today_str = datetime.datetime.now().strftime("%Y/%m/%d")
+
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    
+    # 🔑 加上當日日期過濾參數
     search_params = {
         "db": "pubmed",
         "term": keyword,
         "retmax": max_results,
         "sort": "pub_date",
         "retmode": "json",
+        "datetype": "edat",      # edat: 進入 PubMed 資料庫的日期 (比刊登日更即時)
+        "mindate": today_str,    # 開始日期：今天
+        "maxdate": today_str,    # 結束日期：今天
     }
 
     res = requests.get(search_url, params=search_params)
     res.raise_for_status()
     id_list = res.json()["esearchresult"]["idlist"]
+
+    # 💡 防呆機制：若當天尚未有新論文 (例如當天庫存未更新)，可備退抓取近 2 天的論文
+    if not id_list:
+        print(f"⚠️ 當日 ({today_str}) 無新論文，自動切換至搜尋近 2 天內的論文...")
+        search_params.pop("mindate")
+        search_params.pop("maxdate")
+        search_params["reldate"] = 2  # reldate=2 代表過去 2 天內
+
+        res = requests.get(search_url, params=search_params)
+        res.raise_for_status()
+        id_list = res.json()["esearchresult"]["idlist"]
 
     if not id_list:
         print("未找到相關論文。")
@@ -254,8 +273,7 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
         pub_date_node = article.find(".//Journal/JournalIssue/PubDate")
         pub_date_str = parse_pub_date(pub_date_node)
 
-        # 🔑 呼叫 LLM 產生中文摘要
-        print(f"[{idx}/{max_results}] 正在為 PMID: {pmid} 產生中文摘要...")
+        print(f"[{idx}/{len(id_list)}] 正在為 PMID: {pmid} 產生中文摘要...")
         zh_summary = summarize_with_llm(title, abstract)
 
         articles.append(
@@ -265,7 +283,7 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
                 "journal": journal_title,
                 "impact_factor": impact_factor,
                 "abstract": abstract,
-                "zh_summary": zh_summary,  # 新增 LLM 中文摘要欄位
+                "zh_summary": zh_summary,
                 "date": pub_date_str,
                 "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
             }
