@@ -34,10 +34,9 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 
-# 🔑 定義模型優先順序 (優先使用 2.0-flash，耗盡時自動切換至 1.5-flash)
-PRIMARY_MODEL = "gemini-2.0-flash"
-FALLBACK_MODEL = "gemini-1.5-flash"
-
+# 🔑 定義模型優先順序 
+PRIMARY_MODEL = "gemini-3.5-flash"  # 或 gemini-1.5-flash
+FALLBACK_MODEL = "gemini-3.1-flash-lite"
 
 def summarize_with_llm(title, abstract, retries=3, delay=5):
     """使用 LLM 將論文標題與摘要總結為繁體中文解述 (支援自動退避與 Model Fallback 機制)"""
@@ -90,7 +89,7 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
                     # 向上拋出，交由外層處理 Fallback 或報錯
                     raise e
 
-    # 1. 先嘗試主要模型 (gemini-2.0-flash)
+    # 1. 先嘗試主要模型 (gemini-3.5-flash)
     try:
         return _call_api(PRIMARY_MODEL)
     except Exception as e:
@@ -98,7 +97,7 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
             f"⚠️ 主要模型 [{PRIMARY_MODEL}] 呼叫失敗/配額耗盡: {e}\n🔄 切換至備用模型 [{FALLBACK_MODEL}]..."
         )
 
-    # 2. 主要模型失敗（例如每日配額用完），切換至備用模型 (gemini-1.5-flash)
+    # 2. 主要模型失敗（例如每日配額用完），切換至備用模型 (gemini-3.1-flash)
     try:
         return _call_api(FALLBACK_MODEL)
     except Exception as e:
