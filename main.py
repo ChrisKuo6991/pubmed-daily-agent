@@ -1,11 +1,12 @@
 import datetime
 import os
+import time
 import xml.etree.ElementTree as ET
+from zoneinfo import ZoneInfo  # 🔑 引入 ZoneInfo 處理台灣時區 (Asia/Taipei)
 from google import genai
 from jinja2 import Template
 import pandas as pd
 import requests
-import time
 
 # 搜尋關鍵字與設定
 SEARCH_KEYWORDS = ["Microbiome", "metagenome", "metagenomic"]
@@ -13,6 +14,9 @@ SEARCH_TERM = " OR ".join(SEARCH_KEYWORDS)
 
 MAX_RESULTS = 10
 EXCEL_FILE_PATH = "JCR-ImapctFactor-2025.xlsx"
+
+# 🔑 設定台灣時區
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
 MONTH_MAP = {
     "jan": "01",
@@ -33,10 +37,9 @@ MONTH_MAP = {
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
-
-# 🔑 定義模型優先順序 
-PRIMARY_MODEL = "gemini-3.5-flash"  # 或 gemini-1.5-flash
+PRIMARY_MODEL = "gemini-3.5-flash"
 FALLBACK_MODEL = "gemini-3.1-flash-lite"
+
 
 def summarize_with_llm(title, abstract, retries=3, delay=5):
     """使用 LLM 將論文標題與摘要總結為繁體中文解述 (支援自動退避與 Model Fallback 機制)"""
@@ -61,7 +64,6 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    # 嘗試呼叫 API 的內部閉包函式
     def _call_api(model_name):
         for attempt in range(1, retries + 1):
             try:
@@ -69,11 +71,10 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
                     model=model_name,
                     contents=prompt,
                 )
-                time.sleep(2)  # 成功呼叫後輕微冷卻，保持在安全 RPM 內
+                time.sleep(2)
                 return response.text.strip()
             except Exception as e:
                 err_str = str(e).lower()
-                # 判斷是否為 429 或配額超限
                 is_rate_limit = any(
                     k in err_str
                     for k in ["429", "resource_exhausted", "quota", "limit"]
@@ -86,10 +87,8 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
                     )
                     time.sleep(wait_time)
                 else:
-                    # 向上拋出，交由外層處理 Fallback 或報錯
                     raise e
 
-    # 1. 先嘗試主要模型 (gemini-3.5-flash)
     try:
         return _call_api(PRIMARY_MODEL)
     except Exception as e:
@@ -97,17 +96,16 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
             f"⚠️ 主要模型 [{PRIMARY_MODEL}] 呼叫失敗/配額耗盡: {e}\n🔄 切換至備用模型 [{FALLBACK_MODEL}]..."
         )
 
-    # 2. 主要模型失敗（例如每日配額用完），切換至備用模型 (gemini-3.1-flash)
     try:
         return _call_api(FALLBACK_MODEL)
     except Exception as e:
         print(f"❌ 備用模型 [{FALLBACK_MODEL}] 亦呼叫失敗: {e}")
 
     return "中文摘要生成失敗 (API 配額超限)，請參考英文原文。"
-        
+
 
 def get_full_text(element):
-    """遞迴擷取 XML 節點內部的所有純文字 (包含 <i>, <b> 等子標籤內的文字)"""
+    """遞迴擷取 XML 節點內部的所有純文字"""
     if element is None:
         return ""
     return "".join(element.itertext()).strip()
@@ -196,36 +194,36 @@ def get_impact_factor(journal_title, if_map):
 
 
 def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
-    """使用 NCBI E-utilities API 抓取當日最新論文內容"""
-    print(f"[{datetime.datetime.now()}] 開始搜尋 PubMed: '{keyword}'...")
+    """使用 NCBI E-utilities API 抓取當日最新論文內容 (台灣時間)"""
+    # 🔑 取得台灣時間的「今天」日期
+    now_taipei = datetime.datetime.now(TAIPEI_TZ)
+    today_str = now_taipei.strftime("%Y/%m/%d")
 
-    # 🔑 取得今天的日期格式 (YYYY/MM/DD)
-    today_str = datetime.datetime.now().strftime("%Y/%m/%d")
+    print(f"[{now_taipei.strftime('%Y-%m-%d %H:%M:%S')}] 開始搜尋 PubMed (台灣當日 {today_str}): '{keyword}'...")
 
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-    
-    # 🔑 加上當日日期過濾參數
+
     search_params = {
         "db": "pubmed",
         "term": keyword,
         "retmax": max_results,
         "sort": "pub_date",
         "retmode": "json",
-        "datetype": "edat",      # edat: 進入 PubMed 資料庫的日期 (比刊登日更即時)
-        "mindate": today_str,    # 開始日期：今天
-        "maxdate": today_str,    # 結束日期：今天
+        "datetype": "edat",
+        "mindate": today_str,
+        "maxdate": today_str,
     }
 
     res = requests.get(search_url, params=search_params)
     res.raise_for_status()
     id_list = res.json()["esearchresult"]["idlist"]
 
-    # 💡 防呆機制：若當天尚未有新論文 (例如當天庫存未更新)，可備退抓取近 2 天的論文
+    # 防呆機制：若當天尚未有新論文，自動切換至搜尋近 2 天內的論文
     if not id_list:
         print(f"⚠️ 當日 ({today_str}) 無新論文，自動切換至搜尋近 2 天內的論文...")
-        search_params.pop("mindate")
-        search_params.pop("maxdate")
-        search_params["reldate"] = 2  # reldate=2 代表過去 2 天內
+        search_params.pop("mindate", None)
+        search_params.pop("maxdate", None)
+        search_params["reldate"] = 2
 
         res = requests.get(search_url, params=search_params)
         res.raise_for_status()
@@ -313,12 +311,10 @@ HTML_TEMPLATE = """
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         
-        /* LLM 中文摘要區塊樣式 */
         .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
         .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
         
-        /* 英文原文摺疊選單 */
         details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
         summary { cursor: pointer; font-weight: 500; color: #666; }
         summary:hover { color: #0056b3; }
@@ -334,7 +330,8 @@ HTML_TEMPLATE = """
                 <span class="keyword-tag">{{ kw }}</span>
                 {% endfor %}
             </p>
-            <p>最後更新時間：{{ updated_at }} (UTC)</p>
+            <!-- 🔑 顯示時間註記為 (Asia/Taipei) -->
+            <p>最後更新時間：{{ updated_at }} (Asia/Taipei)</p>
         </header>
 
         {% for article in articles %}
@@ -347,13 +344,11 @@ HTML_TEMPLATE = """
                 <span>PMID: {{ article.pmid }}</span>
             </div>
             
-            <!-- AI 中文解述區塊 -->
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
                 <div class="ai-summary-content">{{ article.zh_summary }}</div>
             </div>
 
-            <!-- 英文原文摘要摺疊選單 -->
             <details>
                 <summary>查看英文原文摘要 (Abstract)</summary>
                 <div class="abstract-en">{{ article.abstract }}</div>
@@ -374,7 +369,8 @@ def main():
 
     if articles:
         template = Template(HTML_TEMPLATE)
-        updated_at = datetime.datetime.now(datetime.timezone.utc).strftime(
+        # 🔑 使用台灣時區計算最後更新時間
+        updated_at = datetime.datetime.now(TAIPEI_TZ).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
         html_content = template.render(
