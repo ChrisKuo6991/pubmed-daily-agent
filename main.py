@@ -111,44 +111,68 @@ def get_full_text(element):
     return "".join(element.itertext()).strip()
 
 
-def parse_pub_date(pub_date_node):
-    """從 PubMed XML 的 PubDate 節點中提取並格式化年月日 (YYYY-MM-DD)"""
-    if pub_date_node is None:
-        return "未知日期"
+def parse_pub_date_from_article(article_node):
+    """
+    從 PubmedArticle XML 節點中，多層級精準擷取論文發表日期 (YYYY-MM-DD)
+    優先順序：ArticleDate (Epub) -> PubMedPubDate (pubmed/entrez) -> JournalIssue PubDate
+    """
+    # 1. 優先嘗試擷取 ArticleDate (通常是電子出版日 Epub)
+    article_date = article_node.find(".//ArticleDate")
+    if article_date is not None:
+        year = article_date.findtext("Year")
+        month = article_date.findtext("Month")
+        day = article_date.findtext("Day")
+        if year and month and day:
+            return f"{year}-{int(month):02d}-{int(day):02d}"
 
-    year = pub_date_node.findtext("Year")
-    month = pub_date_node.findtext("Month")
-    day = pub_date_node.findtext("Day")
+    # 2. 備選：嘗試從 PubMedPubDate (PubStatus="pubmed" 或 "entrez") 抓取
+    for status in ["pubmed", "entrez"]:
+        pubmed_date = article_node.find(f".//PubMedPubDate[@PubStatus='{status}']")
+        if pubmed_date is not None:
+            year = pubmed_date.findtext("Year")
+            month = pubmed_date.findtext("Month")
+            day = pubmed_date.findtext("Day")
+            if year and month and day:
+                return f"{year}-{int(month):02d}-{int(day):02d}"
 
-    if not year:
-        medline_date = pub_date_node.findtext("MedlineDate")
-        if medline_date:
-            parts = medline_date.split()
-            if parts and len(parts[0]) == 4 and parts[0].isdigit():
-                return parts[0]
-            return medline_date
-        return "未知日期"
+    # 3. 底線備選：讀取 JournalIssue 中的 PubDate
+    pub_date_node = article_node.find(".//Journal/JournalIssue/PubDate")
+    if pub_date_node is not None:
+        year = pub_date_node.findtext("Year")
+        month = pub_date_node.findtext("Month")
+        day = pub_date_node.findtext("Day")
 
-    if month:
-        month_clean = month.strip().lower()[:3]
-        if month_clean in MONTH_MAP:
-            month = MONTH_MAP[month_clean]
-        elif month.isdigit():
-            month = f"{int(month):02d}"
-    else:
-        month = ""
+        if not year:
+            medline_date = pub_date_node.findtext("MedlineDate")
+            if medline_date:
+                parts = medline_date.split()
+                if parts and len(parts[0]) == 4 and parts[0].isdigit():
+                    return parts[0]
+                return medline_date
+            return "未知日期"
 
-    if day and day.isdigit():
-        day = f"{int(day):02d}"
-    else:
-        day = ""
+        if month:
+            month_clean = month.strip().lower()[:3]
+            if month_clean in MONTH_MAP:
+                month = MONTH_MAP[month_clean]
+            elif month.isdigit():
+                month = f"{int(month):02d}"
+        else:
+            month = ""
 
-    if year and month and day:
-        return f"{year}-{month}-{day}"
-    elif year and month:
-        return f"{year}-{month}"
-    else:
-        return year
+        if day and day.isdigit():
+            day = f"{int(day):02d}"
+        else:
+            day = ""
+
+        if year and month and day:
+            return f"{year}-{month}-{day}"
+        elif year and month:
+            return f"{year}-{month}"
+        else:
+            return year
+
+    return "未知日期"
 
 
 def load_impact_factors_from_excel(file_path):
@@ -267,8 +291,8 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
         else:
             abstract = "無提供摘要。"
 
-        pub_date_node = article.find(".//Journal/JournalIssue/PubDate")
-        pub_date_str = parse_pub_date(pub_date_node)
+        # 🔑 直接將整個 article 節點傳入新函式解析
+        pub_date_str = parse_pub_date_from_article(article)
 
         print(f"[{idx}/{len(id_list)}] 正在為 PMID: {pmid} 產生中文摘要...")
         zh_summary = summarize_with_llm(title, abstract)
