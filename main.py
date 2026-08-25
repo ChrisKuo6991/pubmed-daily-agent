@@ -1,8 +1,9 @@
 import datetime
 import os
+import re
 import time
 import xml.etree.ElementTree as ET
-from zoneinfo import ZoneInfo  # 🔑 引入 ZoneInfo 處理台灣時區 (Asia/Taipei)
+from zoneinfo import ZoneInfo
 from google import genai
 from jinja2 import Template
 import pandas as pd
@@ -15,7 +16,6 @@ SEARCH_TERM = " OR ".join(SEARCH_KEYWORDS)
 MAX_RESULTS = 10
 EXCEL_FILE_PATH = "JCR-ImapctFactor-2025.xlsx"
 
-# 🔑 設定台灣時區
 TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
 MONTH_MAP = {
@@ -33,7 +33,6 @@ MONTH_MAP = {
     "dec": "12",
 }
 
-# 初始化 Gemini API 用戶端
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
@@ -42,21 +41,30 @@ FALLBACK_MODEL = "gemini-3.1-flash-lite"
 
 
 def summarize_with_llm(title, abstract, retries=3, delay=5):
-    """使用 LLM 將論文標題與摘要總結為繁體中文解述 (支援自動退避與 Model Fallback 機制)"""
+    """使用 LLM 將論文標題與摘要總結為繁體中文解述，並自動判斷技術類型"""
     if not GEMINI_API_KEY:
         print("❌ 錯誤: 未找到 GEMINI_API_KEY 環境變數！")
-        return "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
+        return "others", "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
 
     if not abstract or abstract == "無提供摘要。":
-        return "這篇論文未提供原文摘要，無法進行摘要轉譯。"
+        return "others", "這篇論文未提供原文摘要，無法進行摘要轉譯。"
 
+    # 🔑 在 Prompt 中加入技術類型判斷要求
     prompt = f"""
-你是一位生物醫學與微生物學領域的專家。請根據以下論文標題與摘要，撰寫一份「250字以內」的繁體中文重點解述。
+你是一位生物醫學與微生物學領域的專家。請根據以下論文標題與摘要，完成兩項任務：
 
-要求：
-1. 語言為繁體中文，文筆通順、專業且精煉。
-2. 說明該研究的核心目的、主要發現或臨床/科學意義。
-3. 嚴格控制字數在 250 字以內，不要列點，直接以精煉的一到兩段文字呈現。
+任務一：判斷該研究主要使用的技術類型，必須且只能歸類為以下 5 個選項之一：
+1. 16S (包含 16S rRNA, amplicon sequencing 等擴增子定序)
+2. metagenomics (總體基因體學 / 宏基因組學 /  shotgun metagenomics)
+3. metatranscriptomics (總體轉錄體學 / 宏轉錄組學)
+4. small genome (小型基因體 / 菌株全基因體完成圖 / viral/bacterial genome assembly)
+5. others (若不屬於上述四者，或無法明確判斷)
+
+任務二：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現或意義）。
+
+請嚴格按照以下格式輸出（不要增加額外開頭文字）：
+[技術類型]: 選項名稱 (僅填寫 16S / metagenomics / metatranscriptomics / small genome / others 之一)
+[中文摘要]: 摘要內文...
 
 論文標題：{title}
 原文摘要：{abstract}
@@ -89,19 +97,43 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
                 else:
                     raise e
 
+    # 解析 LLM 傳回的字串，拆解出「技術類型」與「摘要內文」
+    def _parse_llm_output(output_text):
+        tech_type = "others"
+        zh_summary = output_text
+
+        # 匹配 [技術類型]: xxx
+        tech_match = re.search(
+            r"\[技術類型\]:\s*(16S|metagenomics|metatranscriptomics|small genome|others)",
+            output_text,
+            re.IGNORECASE,
+        )
+        if tech_match:
+            tech_type = tech_match.group(1).strip()
+
+        # 匹配 [中文摘要]: xxx
+        summary_match = re.search(r"\[中文摘要\]:\s*(.*)", output_text, re.DOTALL)
+        if summary_match:
+            zh_summary = summary_match.group(1).strip()
+
+        return tech_type, zh_summary
+
+    raw_output = None
     try:
-        return _call_api(PRIMARY_MODEL)
+        raw_output = _call_api(PRIMARY_MODEL)
     except Exception as e:
         print(
-            f"⚠️ 主要模型 [{PRIMARY_MODEL}] 呼叫失敗/配額耗盡: {e}\n🔄 切換至備用模型 [{FALLBACK_MODEL}]..."
+            f"⚠️ 主要模型 [{PRIMARY_MODEL}] 呼叫失敗: {e}\n🔄 切換至備用模型 [{FALLBACK_MODEL}]..."
         )
 
-    try:
-        return _call_api(FALLBACK_MODEL)
-    except Exception as e:
-        print(f"❌ 備用模型 [{FALLBACK_MODEL}] 亦呼叫失敗: {e}")
+    if not raw_output:
+        try:
+            raw_output = _call_api(FALLBACK_MODEL)
+        except Exception as e:
+            print(f"❌ 備用模型 [{FALLBACK_MODEL}] 亦呼叫失敗: {e}")
+            return "others", "中文摘要生成失敗 (API 配額超限)，請參考英文原文。"
 
-    return "中文摘要生成失敗 (API 配額超限)，請參考英文原文。"
+    return _parse_llm_output(raw_output)
 
 
 def get_full_text(element):
@@ -112,11 +144,7 @@ def get_full_text(element):
 
 
 def parse_pub_date_from_article(article_node):
-    """
-    從 PubmedArticle XML 節點中，多層級精準擷取論文發表日期 (YYYY-MM-DD)
-    優先順序：ArticleDate (Epub) -> PubMedPubDate (pubmed/entrez) -> JournalIssue PubDate
-    """
-    # 1. 優先嘗試擷取 ArticleDate (通常是電子出版日 Epub)
+    """從 PubmedArticle XML 節點中多層級精準擷取發表日期 (YYYY-MM-DD)"""
     article_date = article_node.find(".//ArticleDate")
     if article_date is not None:
         year = article_date.findtext("Year")
@@ -125,7 +153,6 @@ def parse_pub_date_from_article(article_node):
         if year and month and day:
             return f"{year}-{int(month):02d}-{int(day):02d}"
 
-    # 2. 備選：嘗試從 PubMedPubDate (PubStatus="pubmed" 或 "entrez") 抓取
     for status in ["pubmed", "entrez"]:
         pubmed_date = article_node.find(f".//PubMedPubDate[@PubStatus='{status}']")
         if pubmed_date is not None:
@@ -135,7 +162,6 @@ def parse_pub_date_from_article(article_node):
             if year and month and day:
                 return f"{year}-{int(month):02d}-{int(day):02d}"
 
-    # 3. 底線備選：讀取 JournalIssue 中的 PubDate
     pub_date_node = article_node.find(".//Journal/JournalIssue/PubDate")
     if pub_date_node is not None:
         year = pub_date_node.findtext("Year")
@@ -218,8 +244,7 @@ def get_impact_factor(journal_title, if_map):
 
 
 def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
-    """使用 NCBI E-utilities API 抓取當日最新論文內容 (台灣時間)"""
-    # 🔑 取得台灣時間的「今天」日期
+    """使用 NCBI E-utilities API 抓取當日最新論文內容"""
     now_taipei = datetime.datetime.now(TAIPEI_TZ)
     today_str = now_taipei.strftime("%Y/%m/%d")
 
@@ -242,7 +267,6 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
     res.raise_for_status()
     id_list = res.json()["esearchresult"]["idlist"]
 
-    # 防呆機制：若當天尚未有新論文，自動切換至搜尋近 2 天內的論文
     if not id_list:
         print(f"⚠️ 當日 ({today_str}) 無新論文，自動切換至搜尋近 2 天內的論文...")
         search_params.pop("mindate", None)
@@ -291,11 +315,10 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
         else:
             abstract = "無提供摘要。"
 
-        # 🔑 直接將整個 article 節點傳入新函式解析
         pub_date_str = parse_pub_date_from_article(article)
 
-        print(f"[{idx}/{len(id_list)}] 正在為 PMID: {pmid} 產生中文摘要...")
-        zh_summary = summarize_with_llm(title, abstract)
+        print(f"[{idx}/{len(id_list)}] 正在為 PMID: {pmid} 分析技術類型與摘要...")
+        tech_type, zh_summary = summarize_with_llm(title, abstract)
 
         articles.append(
             {
@@ -303,6 +326,7 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
                 "title": title,
                 "journal": journal_title,
                 "impact_factor": impact_factor,
+                "tech_type": tech_type,  # 🔑 新增技術類型欄位
                 "abstract": abstract,
                 "zh_summary": zh_summary,
                 "date": pub_date_str,
@@ -335,6 +359,9 @@ HTML_TEMPLATE = """
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         
+        /* 🔑 新增技術類型標籤樣式 */
+        .badge-tech { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        
         .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
         .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
@@ -354,7 +381,6 @@ HTML_TEMPLATE = """
                 <span class="keyword-tag">{{ kw }}</span>
                 {% endfor %}
             </p>
-            <!-- 🔑 顯示時間註記為 (Asia/Taipei) -->
             <p>最後更新時間：{{ updated_at }} (Asia/Taipei)</p>
         </header>
 
@@ -362,6 +388,8 @@ HTML_TEMPLATE = """
         <div class="card">
             <h2><a href="{{ article.url }}" target="_blank">{{ article.title }}</a></h2>
             <div class="meta">
+                <!-- 🔑 顯示技術類型標籤 -->
+                <span class="badge-tech">🔬 {{ article.tech_type }}</span>
                 <span class="badge-journal">📖 {{ article.journal }}</span>
                 <span class="badge-if">IF: {{ article.impact_factor }}</span>
                 <span>📅 發表日期: {{ article.date }}</span>
@@ -393,7 +421,6 @@ def main():
 
     if articles:
         template = Template(HTML_TEMPLATE)
-        # 🔑 使用台灣時區計算最後更新時間
         updated_at = datetime.datetime.now(TAIPEI_TZ).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
