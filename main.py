@@ -325,7 +325,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <header>
-            <h1>PubMed 每日最新論文 AI 快訊與檢索庫</h1>
+            <h1>PubMed 每日最新論文 AI 快訊與檢索庫 by 克里斯</h1>
             <p>資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 | 最後更新：{{ updated_at }}</p>
         </header>
 
