@@ -1,5 +1,6 @@
 import datetime
 import os
+import sys
 import re
 import time
 import xml.etree.ElementTree as ET
@@ -250,29 +251,70 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
 
 
 def sync_database_to_excel(new_articles, db_path):
-    """將每日抓取的論文合併寫入歷史 Excel 資料庫 (以 PMID 去重)"""
-    new_df = pd.DataFrame(new_articles)
-    if not new_df.empty:
-        # 將 List 轉為字串存入 Excel
-        new_df["tech_types"] = new_df["tech_types"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
+    print("\n--- [開始執行 Excel 儲存作業] ---")
+    print(f"📍 目標檔案路徑: {os.path.abspath(db_path)}")
+    print(f"📦 收到待存入論文數量: {len(new_articles)} 筆")
 
+    if not new_articles:
+        print("❌ 警告：傳入的論文陣列為空 (0 筆)，程式將強制建立一份測試 Excel 以確保檔案生成！")
+        # 若無資料，強制寫入測試欄位，避免使用者找不到檔案
+        dummy_df = pd.DataFrame([{
+            "pmid": "00000000",
+            "title": "無新論文（系統初始化）",
+            "journal": "N/A",
+            "impact_factor": "N/A",
+            "tech_types": "none",
+            "sample_size": "未提及",
+            "has_fulltext": False,
+            "abstract": "無資料",
+            "zh_summary": "今日未擷取到新論文",
+            "date": "2026-01-01",
+            "url": "#"
+        }])
+        dummy_df.to_excel(db_path, index=False, engine="openpyxl")
+        print(f"✅ 已強制建立基礎 Excel 檔案：{db_path}")
+        return dummy_df
+
+    new_df = pd.DataFrame(new_articles)
+
+    # 1. 轉化 list 欄位
+    if "tech_types" in new_df.columns:
+        new_df["tech_types"] = new_df["tech_types"].apply(
+            lambda x: ", ".join(x) if isinstance(x, list) else str(x)
+        )
+
+    # 2. 強制確保 PMID 型態為純字串，避免型態比對錯誤
+    new_df["pmid"] = new_df["pmid"].astype(str).str.strip()
+
+    # 3. 讀取或合併既有 Excel
     if os.path.exists(db_path):
-        existing_df = pd.read_excel(db_path)
-        combined_df = pd.concat([new_df, existing_df], ignore_index=True)
-        combined_df.drop_duplicates(subset=["pmid"], keep="first", inplace=True)
+        print("ℹ️ 偵測到既有 Excel 檔案，進行資料合併與去重...")
+        try:
+            existing_df = pd.read_excel(db_path)
+            if "pmid" in existing_df.columns:
+                existing_df["pmid"] = existing_df["pmid"].astype(str).str.strip()
+            combined_df = pd.concat([new_df, existing_df], ignore_index=True)
+            combined_df.drop_duplicates(subset=["pmid"], keep="first", inplace=True)
+        except Exception as e:
+            print(f"⚠️ 讀取舊 Excel 失敗 ({e})，將直接覆寫新檔案。")
+            combined_df = new_df
     else:
+        print("ℹ️ 未發現既有檔案，準備建立全新 Excel 檔案...")
         combined_df = new_df
 
+    # 4. 排序與實體寫入
     combined_df.sort_values(by="date", ascending=False, inplace=True)
 
     try:
         combined_df.to_excel(db_path, index=False, engine="openpyxl")
-        print(f"✅ 成功寫入！總筆數：{len(combined_df)}")
+        print(f"🎉【成功】`{db_path}` 已成功寫入實體硬碟！總筆數：{len(combined_df)}")
     except PermissionError:
-        print(f"❌ 寫入失敗：請先關閉正在開啟的 {db_path} 檔案！")
-    
-    #combined_df.to_excel(db_path, index=False)
-    #print(f"✅ Excel 論文資料庫已更新！總儲存筆數：{len(combined_df)}")
+        print(f"❌【失敗】檔案 `{db_path}` 正在被 Excel 或其他軟體開啟中，請先關閉該檔案後再重新執行程式！")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌【寫入例外錯誤】: {e}")
+        sys.exit(1)
+
     return combined_df
 
 
