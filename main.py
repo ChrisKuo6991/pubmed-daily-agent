@@ -13,24 +13,15 @@ import requests
 SEARCH_KEYWORDS = ["Microbiome", "metagenome", "metagenomic"]
 SEARCH_TERM = " OR ".join(SEARCH_KEYWORDS)
 
-MAX_RESULTS = 10
-EXCEL_FILE_PATH = "JCR-ImapctFactor-2025.xlsx"
+MAX_RESULTS = 15
+EXCEL_IF_PATH = "JCR-ImapctFactor-2025.xlsx"
+DB_EXCEL_PATH = "papers_database.xlsx"
 
 TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
 MONTH_MAP = {
-    "jan": "01",
-    "feb": "02",
-    "mar": "03",
-    "apr": "04",
-    "may": "05",
-    "jun": "06",
-    "jul": "07",
-    "aug": "08",
-    "sep": "09",
-    "oct": "10",
-    "nov": "11",
-    "dec": "12",
+    "jan": "01", "feb": "02", "mar": "03", "apr": "04", "may": "05", "jun": "06",
+    "jul": "07", "aug": "08", "sep": "09", "oct": "10", "nov": "11", "dec": "12",
 }
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -40,40 +31,61 @@ PRIMARY_MODEL = "gemini-3.5-flash"
 FALLBACK_MODEL = "gemini-3.1-flash-lite"
 
 
-def summarize_with_llm(title, abstract, retries=3, delay=5):
-    """使用 LLM 將論文標題與摘要總結為繁體中文解述，並自動判斷技術類型與樣本數量"""
+def fetch_open_access_fulltext(pmid):
+    """嘗試透過 BioC API 抓取 PMC Open Access 全文"""
+    url = f"https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/{pmid}/unicode"
+    try:
+        res = requests.get(url, timeout=5)
+        if res.status_code == 200:
+            data = res.json()
+            full_passages = []
+            for doc in data.get("documents", []):
+                for passage in doc.get("passages", []):
+                    text = passage.get("text", "")
+                    if text:
+                        full_passages.append(text)
+            full_text = "\n".join(full_passages)
+            if len(full_text) > 500:
+                print(f"  [Full-Text Success] PMID: {pmid} 成功獲取 Open Access 全文 ({len(full_text)} 字)")
+                return full_text[:25000]  # 控制長度在 25k 字內
+    except Exception:
+        pass
+    return None
+
+
+def summarize_with_llm(title, abstract, fulltext=None, retries=3, delay=5):
+    """使用 LLM 解析技術類型、樣本數與中文摘要 (優先使用 Full Text)"""
     if not GEMINI_API_KEY:
-        print("❌ 錯誤: 未找到 GEMINI_API_KEY 環境變數！")
-        return ["others"], "未提及", "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
+        return ["others"], "未提及", "⚠️ 未設定 GEMINI_API_KEY"
 
-    if not abstract or abstract == "無提供摘要。":
-        return ["others"], "未提及", "這篇論文未提供原文摘要，無法進行摘要轉譯。"
+    has_fulltext = bool(fulltext)
+    content_type_str = "內文全文" if has_fulltext else "標題與摘要"
+    content_body = fulltext if has_fulltext else f"論文標題：{title}\n原文摘要：{abstract}"
 
-    # 🔑 在 Prompt 中增加「研究樣本數量」擷取任務
     prompt = f"""
-你是一位生物醫學與微生物學領域的專家。請根據以下論文標題與摘要，完成三項任務：
+你是一位生物醫學與微生物學領域的專家。請根據提供的論文{content_type_str}完成三項任務：
 
-任務一：判斷該研究主要使用的技術類型。請從以下 6 個候選標籤中選擇：
+任務一：判斷該研究主要使用的技術類型。請從以下 6 個標籤中選擇：
 1. 16S (包含 16S rRNA, amplicon sequencing 等擴增子定序)
 2. metagenomics (總體基因體學 / 宏基因組學 / shotgun metagenomics)
 3. metatranscriptomics (總體轉錄體學 / 宏轉錄組學)
 4. metabolomics (代謝組學 / 代謝體學 / LC-MS, GC-MS 等代謝物分析)
 5. small genome (小型基因體 / 菌株全基因體完成圖 / viral/bacterial genome assembly)
 6. others (若不屬於上述五者，或無法明確判斷)
-⚠️ 特別注意：若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
+⚠️ 若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
 
-任務二：擷取該研究的「研究樣本數量」（例如：n=50、120 位受試者、45 個糞便檢體、12 個小鼠模型、或 1,200 個基因體等）。
-⚠️ 若摘要中未明確提及樣本數量，請直接填寫「未提及」。
+任務二：擷取該研究的「研究樣本數量」（例如：n=50、120 位受試者、45 個糞便檢體、12 個小鼠模型、1,200 個基因體等）。
+⚠️ 請特別關注文章中的 Materials and Methods 或 Results 區塊。若文章完全未提及樣本數，請填寫「未提及」。
 
-任務三：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現或意義）。
+任務三：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現與臨床/科學意義）。
 
-請嚴格按照以下格式輸出（不要增加額外開頭文字）：
+請嚴格按照以下格式輸出：
 [技術類型]: 技術標籤1, 技術標籤2
-[樣本數量]: 樣本數量描述 (如 n=50 人, 30 個腸道檢體, 或 未提及)
+[樣本數量]: 樣本數量描述
 [中文摘要]: 摘要內文...
 
-論文標題：{title}
-原文摘要：{abstract}
+論文內容：
+{content_body}
 """
 
     client = genai.Client(api_key=GEMINI_API_KEY)
@@ -85,31 +97,20 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
                     model=model_name,
                     contents=prompt,
                 )
-                time.sleep(2)
+                time.sleep(1)
                 return response.text.strip()
             except Exception as e:
                 err_str = str(e).lower()
-                is_rate_limit = any(
-                    k in err_str
-                    for k in ["429", "resource_exhausted", "quota", "limit"]
-                )
-
-                if is_rate_limit and attempt < retries:
-                    wait_time = delay * attempt
-                    print(
-                        f"⚠️ [{model_name}] 觸發 Rate Limit/Quota (429)，等待 {wait_time} 秒後重試 ({attempt}/{retries})..."
-                    )
-                    time.sleep(wait_time)
+                if any(k in err_str for k in ["429", "quota", "limit"]) and attempt < retries:
+                    time.sleep(delay * attempt)
                 else:
                     raise e
 
-    # 🔑 解析 LLM 傳回的字串，拆解出「技術類型」、「樣本數量」與「摘要內文」
     def _parse_llm_output(output_text):
         tech_types = ["others"]
         sample_size = "未提及"
         zh_summary = output_text
 
-        # 匹配 [技術類型]: xxx
         tech_match = re.search(r"\[技術類型\]:\s*(.*)", output_text, re.IGNORECASE)
         if tech_match:
             raw_tech_line = tech_match.group(1).split("\n")[0].strip()
@@ -117,12 +118,10 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
             if parsed_techs:
                 tech_types = parsed_techs
 
-        # 匹配 [樣本數量]: xxx
         sample_match = re.search(r"\[樣本數量\]:\s*(.*)", output_text, re.IGNORECASE)
         if sample_match:
             sample_size = sample_match.group(1).split("\n")[0].strip()
 
-        # 匹配 [中文摘要]: xxx
         summary_match = re.search(r"\[中文摘要\]:\s*(.*)", output_text, re.DOTALL)
         if summary_match:
             zh_summary = summary_match.group(1).strip()
@@ -132,221 +131,142 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
     raw_output = None
     try:
         raw_output = _call_api(PRIMARY_MODEL)
-    except Exception as e:
-        print(
-            f"⚠️ 主要模型 [{PRIMARY_MODEL}] 呼叫失敗: {e}\n🔄 切換至備用模型 [{FALLBACK_MODEL}]..."
-        )
-
-    if not raw_output:
+    except Exception:
         try:
             raw_output = _call_api(FALLBACK_MODEL)
-        except Exception as e:
-            print(f"❌ 備用模型 [{FALLBACK_MODEL}] 亦呼叫失敗: {e}")
-            return ["others"], "未提及", "中文摘要生成失敗 (API 配額超限)，請參考英文原文。"
+        except Exception:
+            return ["others"], "未提及", "AI 分析失敗，請參考英文原文。"
 
     return _parse_llm_output(raw_output)
 
 
 def get_full_text(element):
-    """遞迴擷取 XML 節點內部的所有純文字"""
-    if element is None:
-        return ""
-    return "".join(element.itertext()).strip()
+    return "".join(element.itertext()).strip() if element is not None else ""
 
 
 def parse_pub_date_from_article(article_node):
-    """從 PubmedArticle XML 節點中多層級精準擷取發表日期 (YYYY-MM-DD)"""
     article_date = article_node.find(".//ArticleDate")
     if article_date is not None:
-        year = article_date.findtext("Year")
-        month = article_date.findtext("Month")
-        day = article_date.findtext("Day")
-        if year and month and day:
-            return f"{year}-{int(month):02d}-{int(day):02d}"
+        y, m, d = article_date.findtext("Year"), article_date.findtext("Month"), article_date.findtext("Day")
+        if y and m and d:
+            return f"{y}-{int(m):02d}-{int(d):02d}"
 
     for status in ["pubmed", "entrez"]:
         pubmed_date = article_node.find(f".//PubMedPubDate[@PubStatus='{status}']")
         if pubmed_date is not None:
-            year = pubmed_date.findtext("Year")
-            month = pubmed_date.findtext("Month")
-            day = pubmed_date.findtext("Day")
-            if year and month and day:
-                return f"{year}-{int(month):02d}-{int(day):02d}"
+            y, m, d = pubmed_date.findtext("Year"), pubmed_date.findtext("Month"), pubmed_date.findtext("Day")
+            if y and m and d:
+                return f"{y}-{int(m):02d}-{int(d):02d}"
 
     pub_date_node = article_node.find(".//Journal/JournalIssue/PubDate")
     if pub_date_node is not None:
-        year = pub_date_node.findtext("Year")
-        month = pub_date_node.findtext("Month")
-        day = pub_date_node.findtext("Day")
-
-        if not year:
-            medline_date = pub_date_node.findtext("MedlineDate")
-            if medline_date:
-                parts = medline_date.split()
-                if parts and len(parts[0]) == 4 and parts[0].isdigit():
-                    return parts[0]
-                return medline_date
-            return "未知日期"
-
-        if month:
-            month_clean = month.strip().lower()[:3]
-            if month_clean in MONTH_MAP:
-                month = MONTH_MAP[month_clean]
-            elif month.isdigit():
-                month = f"{int(month):02d}"
-        else:
-            month = ""
-
-        if day and day.isdigit():
-            day = f"{int(day):02d}"
-        else:
-            day = ""
-
-        if year and month and day:
-            return f"{year}-{month}-{day}"
-        elif year and month:
-            return f"{year}-{month}"
-        else:
-            return year
-
+        y = pub_date_node.findtext("Year")
+        m = pub_date_node.findtext("Month")
+        d = pub_date_node.findtext("Day")
+        if not y:
+            medline = pub_date_node.findtext("MedlineDate")
+            return medline[:4] if medline and len(medline) >= 4 else "未知日期"
+        m = MONTH_MAP.get(m.strip().lower()[:3], f"{int(m):02d}") if m and m.isdigit() else "01"
+        d = f"{int(d):02d}" if d and d.isdigit() else "01"
+        return f"{y}-{m}-{d}"
     return "未知日期"
 
 
 def load_impact_factors_from_excel(file_path):
-    """讀取 Excel 檔案並轉為 Python 字典供快速查詢"""
     if not os.path.exists(file_path):
-        print(f"⚠️ 警告: 找不到 Excel 檔案 ({file_path})，Impact Factor 將全顯示 N/A")
         return {}
-
     try:
         df = pd.read_excel(file_path)
         df.columns = [str(col).strip() for col in df.columns]
-
-        if (
-            "Journal Name" not in df.columns
-            or "Impact Factor" not in df.columns
-        ):
-            print(
-                "⚠️ 警告: Excel 欄位名稱需包含 'Journal Name' 與 'Impact Factor'"
-            )
-            return {}
-
-        if_map = {}
-        for _, row in df.iterrows():
-            journal = str(row["Journal Name"]).strip().lower()
-            if_value = str(row["Impact Factor"]).strip()
-            if journal:
-                if_map[journal] = if_value
-
-        print(
-            f"✅ 成功從 {file_path} 載入 {len(if_map)} 筆期刊 Impact Factor 資料！"
-        )
-        return if_map
-    except Exception as e:
-        print(f"❌ 讀取 Excel 檔案失敗: {e}")
-        return {}
+        if "Journal Name" in df.columns and "Impact Factor" in df.columns:
+            return {str(r["Journal Name"]).strip().lower(): str(r["Impact Factor"]).strip() for _, r in df.iterrows()}
+    except Exception:
+        pass
+    return {}
 
 
-def get_impact_factor(journal_title, if_map):
-    if not journal_title or not if_map:
-        return "N/A"
-    clean_title = journal_title.strip().lower()
-    return if_map.get(clean_title, "N/A")
-
-
-def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
-    """使用 NCBI E-utilities API 抓取當日最新論文內容"""
+def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
     now_taipei = datetime.datetime.now(TAIPEI_TZ)
     today_str = now_taipei.strftime("%Y/%m/%d")
 
-    print(f"[{now_taipei.strftime('%Y-%m-%d %H:%M:%S')}] 開始搜尋 PubMed (台灣當日 {today_str}): '{keyword}'...")
-
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-
     search_params = {
-        "db": "pubmed",
-        "term": keyword,
-        "retmax": max_results,
-        "sort": "pub_date",
-        "retmode": "json",
-        "datetype": "edat",
-        "mindate": today_str,
-        "maxdate": today_str,
+        "db": "pubmed", "term": keyword, "retmax": max_results,
+        "sort": "pub_date", "retmode": "json", "datetype": "edat",
+        "mindate": today_str, "maxdate": today_str,
     }
 
     res = requests.get(search_url, params=search_params)
-    res.raise_for_status()
     id_list = res.json()["esearchresult"]["idlist"]
 
     if not id_list:
-        print(f"⚠️ 當日 ({today_str}) 無新論文，自動切換至搜尋近 2 天內的論文...")
         search_params.pop("mindate", None)
         search_params.pop("maxdate", None)
         search_params["reldate"] = 2
-
         res = requests.get(search_url, params=search_params)
-        res.raise_for_status()
         id_list = res.json()["esearchresult"]["idlist"]
 
     if not id_list:
-        print("未找到相關論文。")
         return []
 
     fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-    fetch_params = {
-        "db": "pubmed",
-        "id": ",".join(id_list),
-        "retmode": "xml",
-    }
-
-    fetch_res = requests.get(fetch_url, params=fetch_params)
-    fetch_res.raise_for_status()
+    fetch_res = requests.get(fetch_url, params={"db": "pubmed", "id": ",".join(id_list), "retmode": "xml"})
 
     root = ET.fromstring(fetch_res.content)
     articles = []
 
     for idx, article in enumerate(root.findall(".//PubmedArticle"), 1):
         pmid = article.findtext(".//PMID")
-
-        title_element = article.find(".//ArticleTitle")
-        title = get_full_text(title_element) or "無標題"
-
-        journal_title = (
-            article.findtext(".//Journal/Title")
-            or article.findtext(".//Journal/ISOAbbreviation")
-            or "未知期刊"
-        )
-
-        impact_factor = get_impact_factor(journal_title, if_map)
+        title = get_full_text(article.find(".//ArticleTitle")) or "無標題"
+        journal_title = article.findtext(".//Journal/Title") or "未知期刊"
+        impact_factor = if_map.get(journal_title.strip().lower(), "N/A")
 
         abstract_texts = article.findall(".//AbstractText")
-        if abstract_texts:
-            abstract_parts = [get_full_text(a) for a in abstract_texts]
-            abstract = " ".join([p for p in abstract_parts if p])
-        else:
-            abstract = "無提供摘要。"
-
+        abstract = " ".join([get_full_text(a) for a in abstract_texts]) if abstract_texts else "無提供摘要。"
         pub_date_str = parse_pub_date_from_article(article)
 
-        print(f"[{idx}/{len(id_list)}] 正在為 PMID: {pmid} 分析技術、樣本數與摘要...")
-        tech_types, sample_size, zh_summary = summarize_with_llm(title, abstract)
+        # 嘗試抓取全文
+        fulltext = fetch_open_access_fulltext(pmid)
+        has_fulltext_flag = " (全文)" if fulltext else " (摘要)"
 
-        articles.append(
-            {
-                "pmid": pmid,
-                "title": title,
-                "journal": journal_title,
-                "impact_factor": impact_factor,
-                "tech_types": tech_types,
-                "sample_size": sample_size,  # 🔑 新增樣本數量欄位
-                "abstract": abstract,
-                "zh_summary": zh_summary,
-                "date": pub_date_str,
-                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-            }
-        )
+        print(f"[{idx}/{len(id_list)}] PMID: {pmid}{has_fulltext_flag} 分析中...")
+        tech_types, sample_size, zh_summary = summarize_with_llm(title, abstract, fulltext)
+
+        articles.append({
+            "pmid": pmid,
+            "title": title,
+            "journal": journal_title,
+            "impact_factor": impact_factor,
+            "tech_types": tech_types,
+            "sample_size": sample_size,
+            "has_fulltext": bool(fulltext),
+            "abstract": abstract,
+            "zh_summary": zh_summary,
+            "date": pub_date_str,
+            "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+        })
 
     return articles
+
+
+def sync_database_to_excel(new_articles, db_path):
+    """將每日抓取的論文合併寫入歷史 Excel 資料庫 (以 PMID 去重)"""
+    new_df = pd.DataFrame(new_articles)
+    if not new_df.empty:
+        # 將 List 轉為字串存入 Excel
+        new_df["tech_types"] = new_df["tech_types"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
+
+    if os.path.exists(db_path):
+        existing_df = pd.read_excel(db_path)
+        combined_df = pd.concat([new_df, existing_df], ignore_index=True)
+        combined_df.drop_duplicates(subset=["pmid"], keep="first", inplace=True)
+    else:
+        combined_df = new_df
+
+    combined_df.sort_values(by="date", ascending=False, inplace=True)
+    combined_df.to_excel(db_path, index=False)
+    print(f"✅ Excel 論文資料庫已更新！總儲存筆數：{len(combined_df)}")
+    return combined_df
 
 
 HTML_TEMPLATE = """
@@ -355,98 +275,253 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PubMed 每日論文 AI 摘要快訊 by 克里斯</title>
+    <title>PubMed 每日論文 AI 快訊與資料庫</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
         header { background: #0056b3; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         header h1 { margin: 0; font-size: 24px; }
-        header p { margin: 5px 0 0 0; opacity: 0.8; font-size: 14px; }
-        .keyword-tag { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold; }
+        
+        /* 篩選與搜尋面板 */
+        .filter-panel { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .filter-group { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+        .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .btn-reset { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-reset:hover { background: #5a6268; }
+
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .card h2 { margin-top: 0; font-size: 18px; }
+        .card h2 { margin-top: 0; font-size: 18px; line-height: 1.4; }
         .card h2 a { color: #0056b3; text-decoration: none; }
         .card h2 a:hover { text-decoration: underline; }
         .meta { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         .badge-tech { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        
-        /* 🔑 新增樣本數量標籤樣式 */
         .badge-sample { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        
+        .badge-fulltext { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+
         .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
-        .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; }
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
+
+        /* 分頁元件 */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 30px 0; }
+        .pagination button { background: #0056b3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .pagination button:disabled { background: #ccc; cursor: not-allowed; }
+        .page-info { font-size: 14px; font-weight: 500; }
         
         details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
-        summary { cursor: pointer; font-weight: 500; color: #666; }
-        summary:hover { color: #0056b3; }
-        .abstract-en { margin-top: 8px; line-height: 1.5; }
+        summary { cursor: pointer; font-weight: 500; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>PubMed 每日最新論文 AI 快訊 by 克里斯</h1>
-            <p>搜尋主題：
-                {% for kw in keywords %}
-                <span class="keyword-tag">{{ kw }}</span>
-                {% endfor %}
-            </p>
-            <p>最後更新時間：{{ updated_at }} (Asia/Taipei)</p>
+            <h1>PubMed 每日最新論文 AI 快訊與檢索庫</h1>
+            <p>資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 | 最後更新：{{ updated_at }}</p>
         </header>
 
-        {% for article in articles %}
-        <div class="card">
-            <h2><a href="{{ article.url }}" target="_blank">{{ article.title }}</a></h2>
-            <div class="meta">
-                {% for tech in article.tech_types %}
-                <span class="badge-tech">🔬 {{ tech }}</span>
-                {% endfor %}
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: {{ article.sample_size }}</span>
-                <span class="badge-journal">📖 {{ article.journal }}</span>
-                <span class="badge-if">IF: {{ article.impact_factor }}</span>
-                <span>📅 發表日期: {{ article.date }}</span>
-                <span>PMID: {{ article.pmid }}</span>
+        <!-- 篩選控制列 -->
+        <div class="filter-panel">
+            <div class="filter-group">
+                <label>📅 開始日期:</label>
+                <input type="date" id="filter-start-date">
             </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">{{ article.zh_summary }}</div>
+            <div class="filter-group">
+                <label>📅 結束日期:</label>
+                <input type="date" id="filter-end-date">
             </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">{{ article.abstract }}</div>
-            </details>
+            <div class="filter-group">
+                <label>🔬 技術類型:</label>
+                <select id="filter-tech">
+                    <option value="">全部技術</option>
+                    <option value="16S">16S</option>
+                    <option value="metagenomics">metagenomics</option>
+                    <option value="metatranscriptomics">metatranscriptomics</option>
+                    <option value="metabolomics">metabolomics</option>
+                    <option value="small genome">small genome</option>
+                    <option value="others">others</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🔍 關鍵字:</label>
+                <input type="text" id="filter-search" placeholder="搜尋標題/摘要/期刊...">
+            </div>
+            <button class="btn-reset" onclick="resetFilters()">重置篩選</button>
         </div>
-        {% endfor %}
+
+        <!-- 文章容器 -->
+        <div id="articles-list"></div>
+
+        <!-- 分頁控制欄 -->
+        <div class="pagination">
+            <button id="btn-prev" onclick="changePage(-1)">上一頁</button>
+            <span class="page-info" id="page-info">第 1 頁 / 共 1 頁</span>
+            <button id="btn-next" onclick="changePage(1)">下一頁</button>
+        </div>
     </div>
+
+    <script>
+        // 載入完整歷史資料庫 (JSON 格式注入)
+        const rawArticlesData = {{ articles_json | safe }};
+        
+        let filteredArticles = [...rawArticlesData];
+        let currentPage = 1;
+        const itemsPerPage = 15;
+
+        // 初始化
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("total-db-count").textContent = rawArticlesData.length;
+            
+            // 事件監聽
+            document.getElementById("filter-start-date").addEventListener("change", applyFilters);
+            document.getElementById("filter-end-date").addEventListener("change", applyFilters);
+            document.getElementById("filter-tech").addEventListener("change", applyFilters);
+            document.getElementById("filter-search").addEventListener("input", applyFilters);
+
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const startDate = document.getElementById("filter-start-date").value;
+            const endDate = document.getElementById("filter-end-date").value;
+            const selectedTech = document.getElementById("filter-tech").value.toLowerCase();
+            const searchText = document.getElementById("filter-search").value.toLowerCase().trim();
+
+            filteredArticles = rawArticlesData.filter(art => {
+                // 日期篩選
+                if (startDate && art.date < startDate) return false;
+                if (endDate && art.date > endDate) return false;
+
+                // 技術類型篩選 (包含於字串內)
+                if (selectedTech) {
+                    const techStr = String(art.tech_types).toLowerCase();
+                    if (!techStr.includes(selectedTech)) return false;
+                }
+
+                // 關鍵字搜尋
+                if (searchText) {
+                    const fullContent = (art.title + art.journal + art.zh_summary + art.abstract).toLowerCase();
+                    if (!fullContent.includes(searchText)) return false;
+                }
+
+                return true;
+            });
+
+            // 預設由最新日期開始排序 (最新在最前)
+            filteredArticles.sort((a, b) => (b.date > a.date ? 1 : -1));
+
+            currentPage = 1;
+            renderArticles();
+        }
+
+        function renderArticles() {
+            const container = document.getElementById("articles-list");
+            container.innerHTML = "";
+
+            if (filteredArticles.length === 0) {
+                container.innerHTML = `<div class="card"><p style="text-align:center; color:#888;">查無符合條件的論文。</p></div>`;
+                updatePaginationControls(0);
+                return;
+            }
+
+            const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const pageData = filteredArticles.slice(startIndex, startIndex + itemsPerPage);
+
+            pageData.forEach(art => {
+                // 處理多技術標籤顯示
+                const techs = String(art.tech_types).split(",").map(t => t.trim());
+                const techBadges = techs.map(t => `<span class="badge-tech">🔬 ${t}</span>`).join(" ");
+                const fullTextBadge = art.has_fulltext ? `<span class="badge-fulltext">📄 全文分析</span>` : ``;
+
+                const cardHtml = `
+                    <div class="card">
+                        <h2><a href="${art.url}" target="_blank">${art.title}</a></h2>
+                        <div class="meta">
+                            ${techBadges}
+                            <span class="badge-sample">📊 樣本: ${art.sample_size}</span>
+                            ${fullTextBadge}
+                            <span class="badge-journal">📖 ${art.journal}</span>
+                            <span class="badge-if">IF: ${art.impact_factor}</span>
+                            <span>📅 日期: ${art.date}</span>
+                            <span>PMID: ${art.pmid}</span>
+                        </div>
+                        <div class="ai-summary">
+                            <div class="ai-summary-title">🤖 AI 核心解述</div>
+                            <div class="ai-summary-content">${art.zh_summary}</div>
+                        </div>
+                        <details>
+                            <summary>查看英文原文摘要 (Abstract)</summary>
+                            <div class="abstract-en" style="margin-top:8px;">${art.abstract}</div>
+                        </details>
+                    </div>
+                `;
+                container.insertAdjacentHTML("beforeend", cardHtml);
+            });
+
+            updatePaginationControls(totalPages);
+        }
+
+        function updatePaginationControls(totalPages) {
+            document.getElementById("page-info").textContent = `第 ${currentPage} 頁 / 共 ${totalPages || 1} 頁 (篩選出 ${filteredArticles.length} 筆)`;
+            document.getElementById("btn-prev").disabled = (currentPage <= 1);
+            document.getElementById("btn-next").disabled = (currentPage >= totalPages || totalPages === 0);
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            renderArticles();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetFilters() {
+            document.getElementById("filter-start-date").value = "";
+            document.getElementById("filter-end-date").value = "";
+            document.getElementById("filter-tech").value = "";
+            document.getElementById("filter-search").value = "";
+            applyFilters();
+        }
+    </script>
 </body>
 </html>
 """
 
 
 def main():
-    if_map = load_impact_factors_from_excel(EXCEL_FILE_PATH)
-    articles = fetch_latest_pubmed_articles(
-        SEARCH_TERM, if_map, max_results=MAX_RESULTS
+    if_map = load_impact_factors_from_excel(EXCEL_IF_PATH)
+    
+    # 1. 抓取每日最新論文
+    new_articles = fetch_latest_pubmed_articles(SEARCH_TERM, if_map, max_results=MAX_RESULTS)
+    
+    # 2. 儲存並同步至歷史 Excel 資料庫
+    db_df = sync_database_to_excel(new_articles, DB_EXCEL_PATH)
+    
+    # 3. 將資料庫全數導出為 JSON 並嵌入 HTML 前端
+    db_articles = db_df.to_dict(orient="records")
+    
+    # 確保 JSON 相容性 (處理布林值與欄位)
+    for art in db_articles:
+        if "has_fulltext" not in art or pd.isna(art["has_fulltext"]):
+            art["has_fulltext"] = False
+        else:
+            art["has_fulltext"] = bool(art["has_fulltext"])
+
+    template = Template(HTML_TEMPLATE)
+    updated_at = datetime.datetime.now(TAIPEI_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    
+    import json
+    articles_json = json.dumps(db_articles, ensure_ascii=False)
+    
+    html_content = template.render(
+        articles_json=articles_json,
+        updated_at=updated_at
     )
 
-    if articles:
-        template = Template(HTML_TEMPLATE)
-        updated_at = datetime.datetime.now(TAIPEI_TZ).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-        html_content = template.render(
-            articles=articles, keywords=SEARCH_KEYWORDS, updated_at=updated_at
-        )
-
-        with open("index.html", "w", encoding="utf-8") as f:
-            f.write(html_content)
-        print("index.html 生成完成！")
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("🎉 index.html 與 Excel 資料庫更新完成！")
 
 
 if __name__ == "__main__":
