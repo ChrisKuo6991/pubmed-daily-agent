@@ -19,9 +19,10 @@
         .meta { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        
-        /* 🔑 多標籤技術徽章樣式 */
         .badge-tech { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        
+        /* 🔑 新增樣本數量標籤樣式 */
+        .badge-sample { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         
         .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
         .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
@@ -46,19 +47,20 @@
                 <span class="keyword-tag">metagenomic</span>
                 
             </p>
-            <p>最後更新時間：2026-08-25 15:28:04 (Asia/Taipei)</p>
+            <p>最後更新時間：2026-08-25 15:33:13 (Asia/Taipei)</p>
         </header>
 
         
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42635406/" target="_blank">Separating extracellular from intracellular fecal metabolites exposes cross-feeding architecture in the gut: exploring metabolite partitioning and ecological associations.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 metagenomics</span>
                 
                 <span class="badge-tech">🔬 metabolomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 63 位健康受試者的糞便檢體</span>
                 <span class="badge-journal">📖 Gut microbes</span>
                 <span class="badge-if">IF: 11.0</span>
                 <span>📅 發表日期: 2026-08-24</span>
@@ -67,7 +69,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究旨在區分糞便中的胞外與胞內代謝物，以解析腸道菌群的交互餵養（cross-feeding）結構。研究團隊分析了63位健康受試者的糞便，透過比較未破菌（胞外）與破菌（總量）組分中的短鏈脂肪酸、多胺與維生素，並結合總體基因體學分析。結果顯示維生素可分為「胞內保留型」（如B12、B1、B3）與「胞外富集型」（如B7、B5）兩類，且其分佈與特定腸道菌（如Blautia與Alistipes）的利用及生態棲位密切相關。此框架成功彌合了基因體潛力與實際代謝表型，為研究腸道代謝網路提供了新視角。</div>
+                <div class="ai-summary-content">本研究開發了一種區分腸道細胞內與細胞外代謝物的新方法，藉由分析63位健康受試者的糞便，量化短鏈脂肪酸、多胺和水溶性維生素。研究將代謝組與宏基因組數據整合，發現維生素可分為「細胞內保留型」（如B1、B3、B12輔酶）與「細胞外富集型」（如B5、B7）。其中，細胞內的B1與*Blautia*菌呈負相關，反映了微生物的積極利用；而細胞外的B7則與*Alistipes*菌呈強正相關，與特定的生態棲位相關。此技術成功將「基因組潛力」與「代謝組實況」連結，為解析腸道菌群的交互餵養（cross-feeding）機制提供了實用框架。</div>
             </div>
 
             <details>
@@ -79,12 +81,13 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42635403/" target="_blank">Baseline gut microbiome ecology predicts long-term fat mass loss after bariatric surgery: evidence for a thrifty Bifidobacterium phenotype.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metabolomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 85 位接受減重手術的嚴重肥胖患者與 21 位健康對照組</span>
                 <span class="badge-journal">📖 Gut microbes</span>
                 <span class="badge-if">IF: 11.0</span>
                 <span>📅 發表日期: 2026-08-24</span>
@@ -93,7 +96,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究旨在評估減重手術（BS）後腸道菌相與代謝物的長期變化，並探討基線菌群如何預測術後減脂成效。研究發現，手術會顯著重塑腸道生態（如雙歧桿菌減少、丁酸鹽增加），呈現一種獨特的適應性狀態而非恢復至健康對照組水準。關鍵在於，基底雙歧桿菌（Bifidobacterium）豐度較高的患者，在術後24個月的脂肪流失量顯著較少；這種高基線豐度可能扮演「節儉菌相」角色，透過最大化能量吸收來限制手術引起的脂肪流失。此發現強調了術前進行精準微生態干預以優化減重效果的潛力。</div>
+                <div class="ai-summary-content">本研究旨在評估減重手術（BS）與地中海飲食對腸道菌相及代謝物的長期影響。研究發現，手術能顯著重塑腸道微生態，使其達致新型適應狀態而非完全恢復正常。關鍵在於，患者術前的腸道生態會預測其長期減脂成效：術前擁有高豐度雙歧桿菌（Bifidobacterium）的患者，在術後24個月的脂肪減輕量顯著較少（6.6% vs 13.2%）。這表明高豐度的雙歧桿菌可能扮演「節約型菌相」角色，會最大化能量吸收並限制術後脂肪流失。此發現強調了術前進行精準微生態干預的潛力。</div>
             </div>
 
             <details>
@@ -105,12 +108,13 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42635401/" target="_blank">Fecal filtrate transplantation as salvage therapy for fulminant Clostridioides difficile infection in adult hematological patients during chemotherapy-induced aplasia: a pilot experience.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metagenomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 3 位血液腫瘍合併嚴重困難梭狀芽孢桿菌感染的患者</span>
                 <span class="badge-journal">📖 Gut microbes</span>
                 <span class="badge-if">IF: 11.0</span>
                 <span>📅 發表日期: 2026-08-24</span>
@@ -119,7 +123,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究評估糞便濾液移植（FFT）作為治療化療引起骨髓造血功能停滯且患有難治性嚴重困難梭菌感染（CDI）血液病患者的挽救療法。臨床結果顯示，三名接受FFT的急性髓性白血病患者在14天內皆達到臨床緩解，且無移植相關不良反應。微生態與噬菌體分析顯示（結合16S與總體基因體學），雖然未發現供體噬菌體扮演直接清除病原的角色，但觀察到受體體內梭菌的潛伏噬菌體被誘導進入裂解期，可能促進了去定殖作用。此研究證實FFT在此高風險患者群體中具可行性、安全性及快速療效。</div>
+                <div class="ai-summary-content">本研究旨在評估糞便濾液移植（FFT）作為挽救性療法，治療化療引起骨髓造血功能停滯且併發嚴重困難梭狀芽孢桿菌感染（CDI）的成年血液腫瘍患者之療效，並探討噬菌體群動力學。此臨床試驗共納入 3 位對常規藥物治療無效的急性髓細胞性白血病患者。結果顯示，所有患者在接受 FFT 後 14 天內皆達到臨床緩解、腹脹與發炎指標改善，且無治療相關的嚴重不良反應。微生物與噬菌體體學分析顯示，菌群結構發生異質性改變，且可能誘導了患者體內梭狀芽孢桿菌的溫和噬菌體進入裂解期，從而促進去定殖。本研究證實 FFT 在此類高風險免疫抑制患者中具有可行性與安全性，能迅速且持續地緩解 CDI。</div>
             </div>
 
             <details>
@@ -131,10 +135,11 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42634246/" target="_blank">Natural microbiota confer life-long protection against obesity via an early-life, immune-mediated effect on brown adipocytes.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 others</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 未提及</span>
                 <span class="badge-journal">📖 Gut microbes</span>
                 <span class="badge-if">IF: 11.0</span>
                 <span>📅 發表日期: 2026-08-23</span>
@@ -143,7 +148,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究旨在探討自然微菌群如何預防飲食引起的肥胖。研究發現，移植野生小鼠的天然微菌群能降低實驗小鼠體重並增加能量消耗。單細胞核RNA定序顯示，這與褐色脂肪組織（BAT）中產熱活性增強有關。此保護作用不依賴第二型免疫信號（STAT6），而是與早期生命中微菌群促進趨化因子釋放、引導CCR2依賴性單核細胞浸潤BAT有關。若缺乏CCR2，則失去產熱與抗肥胖效果。本研究揭示了全新的「微菌群—免疫—脂肪組織」軸，證實早期菌相能透過免疫介導調節褐色脂肪產熱，達到終生抗肥胖的效果。</div>
+                <div class="ai-summary-content">本研究探討野生小鼠的天然腸道菌群如何賦予宿主對抗飲食誘導肥胖的終身保護效應。研究發現，引入天然菌群能顯著增加小鼠的能量消耗並減少體重增加。透過單核 RNA 定序分析，發現天然菌群能增強褐色脂肪組織（BAT）的產熱活性。進一步機制研究證實，此保護作用並非透過先天免疫類型 2 訊號路徑，而是依賴於早期生命階段中，由 CCR2+ 骨髓細胞浸潤至褐色脂肪組織所引發的免疫反應。透過將骨髓細胞注射至 CCR2 缺陷小鼠，可成功恢復其對抗肥胖的保護能力。此發現揭示了「菌群－免疫－脂肪組織」的新型調節軸，解釋了早期微生物接觸如何透過免疫調節長效性地影響代謝健康與能量平衡，為肥胖防治提供了潛在的微生物標靶。</div>
             </div>
 
             <details>
@@ -155,12 +160,13 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637484/" target="_blank">Insights into the analysis of microbial communities in fermented foods from the perspective of DNA-based techniques.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metagenomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 未提及</span>
                 <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
                 <span class="badge-if">IF: N/A</span>
                 <span>📅 發表日期: 2026-07-27</span>
@@ -169,7 +175,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本綜述系統性地探討了以DNA為基礎的擴增子定序（16S）與總體基因體學技術在發酵食品微生物群落分析中的應用。文章深入解析了兩者在數據預處理、特異性數據庫選擇以及下游分析（如多樣性、共發生網絡與機器學習預測）的策略。研究指出，擴增子定序能高效揭示發酵過程中的微生物演替，但在功能註釋上有所限制；而總體基因體學則長於功能註釋，能有效連結群落結構與代謝潛力。建立標準化的分析流程與專用數據庫，將有助於揭示微生物演替的驅動機制，為實現精準發酵奠定重要基礎。</div>
+                <div class="ai-summary-content">本文為一篇綜述，系統性探討了以 DNA 為基礎的擴增子定序與總體基因體學技術在發酵食品微生物群落中的應用。文章詳細整理了數據預處理、特定資料庫選擇及下游分析策略（如群落多樣性、共發生網路和機器學習預測）。指出擴增子定序能高效揭示發酵過程中的微生物演替，而總體基因體學則在功能註解及代謝潛力關聯上具備顯著優勢。最後，強調標準化分析流程與數據組成性特徵的驗證，對於推動精準發酵時代的到來至關重要。</div>
             </div>
 
             <details>
@@ -181,12 +187,13 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637478/" target="_blank">Effects of sorghum variety on fermentation microecology and flavor characteristics of sesame-flavor Baijiu.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metabolomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 未提及（摘要僅提及針對三種高粱品種進行兩個連續發酵輪次的採樣分析）</span>
                 <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
                 <span class="badge-if">IF: N/A</span>
                 <span>📅 發表日期: 2026-07-24</span>
@@ -195,7 +202,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討三種不同高粱品種（紅纓子、黑殼及本地品種）對芝麻香型白酒發酵過程中微生態與風味特徵的影響。研究發現，儘管整體發酵趨勢相似，但不同高粱品種在酸累積、澱粉利用、微生物群落演替（真菌由畢赤酵母屬轉為多屬共存，細菌趨向乳酸桿菌屬主導）及揮發性風味物質（以酯類為主）的組成上存在顯著差異。各品種在風味化合物的富集上各有特色，無單一品種能在所有芝麻香相關化合物中皆具優勢。此結果證實高粱品種是影響白酒發酵微生物裝配與風味形成的重要因素，為釀酒原料選擇與製程優化提供了科學依據。</div>
+                <div class="ai-summary-content">本研究探討不同品種高粱（紅纓子、黑鵝及國產高粱）對芝麻香型白酒發酵微生態與風味形成的影響。研究分析了發酵過程中酒醅的理化性質、酶活性、微生物群落結構及揮發性化合物組成。結果顯示，儘管三種高粱的發酵趨勢相似，但在酸度積累、澱粉利用率、微生物演替（真菌由畢赤酵母主導轉向多菌種共存，細菌則趨向乳酸桿菌主導）及揮發性風味物質上存在顯著差異。酯類是造成風味差異的主要關鍵，且不同品種與發酵輪次對香氣物質的富集各有優劣。此研究證實高粱品種是調控白酒微生態與風味的重要因子，可作為工業生產中優化製程與篩選原料的科學依據。</div>
             </div>
 
             <details>
@@ -207,12 +214,11 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637476/" target="_blank">A Shenling Baizhu San polysaccharide fraction (SLP-2)-based synbiotic alleviates lactose-induced gut dysfunction via a microbiota-metabolite-barrier axis.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
-                
-                <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metabolomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 未提及</span>
                 <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
                 <span class="badge-if">IF: N/A</span>
                 <span>📅 發表日期: 2026-07-24</span>
@@ -221,7 +227,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究旨在探討參苓白朮散中的活性多醣組分（SLP-2）及其配對益生菌組成的合生元（synbiotic），如何緩解高乳糖飲食引起的腸道功能障礙。研究發現，SLP-2能促進 *A. muciniphila* 和 *Eubacterium* 等益生菌生長。將SLP-2與特定益生菌結合的合生元干預，能顯著改善大鼠的腸道屏障、增加緊密連接蛋白與 MUC2 表達，並增厚黏液層。多體學分析證實，該合生元透過調控特定的腸道與系統代謝物（如 6-MGG、HTy-Ac、DHPV-G），能有效恢復屏障功能並改善免疫調控（提升 IL-10 並降低 TLR4）。本研究證實該合生元可透過「菌群-代謝物-屏障」軸緩解腸道不適，為乳糖不耐症的膳食干預提供了新策略。</div>
+                <div class="ai-summary-content">本研究旨在探討參苓白朮散中的活性多醣組分（SLP-2）及其作為合生元（synbiotic）對乳糖不耐症引起的腸道功能障礙之改善效果。研究團隊通過人體糞便發酵、單一菌株培養及高乳糖飲食（HLD）大鼠模型，證實 SLP-2 能有效富集益菌（如 *Akkermansia muciniphila* 與 *Eubacterium* 相關菌群）。結合 SLP-2 與目標菌株的合生元策略，被證實能顯著提升腸道屏障功能，包括增加緊密連接蛋白與 MUC2 表達，並改善腸道結構與黏液層厚度。此外，多體學分析揭示了關鍵共代謝產物（如 6-MGG、HTy-Ac 與 DHPV-G）在腸道修復及免疫調節中的重要作用，提升了抗發炎因子 IL-10 並降低 TLR4 表現。該研究為開發基於天然多醣的合生元介入策略提供了重要的臨床前證據。</div>
             </div>
 
             <details>
@@ -233,12 +239,13 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637471/" target="_blank">Fucoidan from giant kelp alleviates postmenopausal osteoporosis by regulating the betaine-OPG/RANKL/RANK signaling axis.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metabolomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 未提及</span>
                 <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
                 <span class="badge-if">IF: N/A</span>
                 <span>📅 發表日期: 2026-07-24</span>
@@ -247,7 +254,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討巨褐藻褐藻醣膠（GKP）對去卵巢小鼠絕經後骨質疏鬆症（PMOP）的保護作用與機制。結果顯示，GKP能有效減緩骨質流失。透過16S rRNA定序，發現GKP可重塑腸道菌群（降低擬桿菌門/厚壁菌門比例）並促進短鏈脂肪酸產生；靶向代謝組學則證實GKP誘導了全身代謝重塑，並篩選出關鍵代謝產物「甜菜鹼」（betaine）。進一步實驗證實，甜菜鹼能抑制RANKL誘導的破骨細胞分化，並透過調節OPG/RANKL/RANK信號軸發揮與GKP相似的骨骼保護效用。本研究顯示，GKP與甜菜鹼具有開發為防治骨質疏鬆症膳食補充劑的潛力。</div>
+                <div class="ai-summary-content">本研究探討巨藻岩藻多醣（GKP）對停經後骨質疏鬆（PMOP）的保護機制。在卵巢切除小鼠模型中，GKP 可改善骨小樑結構並抑制破骨細胞生成。研究發現 GKP 能重塑腸道菌群，降低 Bacteroidota/Firmicutes 比例並促進短鏈脂肪酸產生。透過代謝體學分析，證實 GKP 可引發全身性代謝重編程，特別是提升甜菜鹼（betaine）的含量。進一步實驗證實，甜菜鹼能透過調控 OPG/RANKL/RANK 信號軸抑制破骨細胞分化與發炎反應。結論指出，GKP 透過調節腸道微生物與代謝產物（特別是甜菜鹼）達到抗骨質疏鬆效果，為相關營養干預提供了理論基礎。</div>
             </div>
 
             <details>
@@ -259,12 +266,13 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637450/" target="_blank">Highland barley polysaccharides promoted lactose intestinal fermentation in vitro: Unveiling the dynamic response of gut microbiota and polysaccharide structure.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metabolomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 未提及</span>
                 <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
                 <span class="badge-if">IF: N/A</span>
                 <span>📅 發表日期: 2026-07-24</span>
@@ -273,7 +281,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討利用青稞多醣（HBP）促進乳糖體外腸道發酵的機制。結果顯示，添加HBP（尤其是低分子量的HBP-L）能顯著提升乳糖消耗效率達29%，效果優於市售益生元。HBP-L能隨時間特異性富集Segatella、雙歧桿菌和粘液乳桿菌，進而提高細菌乳糖酶活性，將乳糖轉化為乳酸與短鏈脂肪酸。結構分析顯示，HBP-L中的木糖殘基和配糖鍵會被優先降解利用。本研究證實HBP能藉由調節腸道菌群結構來加速乳糖代謝，為開發改善乳糖不耐症的標靶益生元食品提供了理論依據。</div>
+                <div class="ai-summary-content">本研究探討青稞多醣（HBP）作為益生元，在乳糖不耐症體外發酵模型中對乳糖代謝的促進作用。結果顯示，添加 HBP 能顯著提升乳糖發酵效率，尤以低分子量之 HBP-L 效果更佳，發酵 48 小時後乳糖消耗量提升 29%。實驗發現 HBP-L 能促進腸道中 *Segatella*、*Bifidobacterium* 與 *Ligilactobacillus* 等菌群的豐度，並增加細菌乳糖酶活性，進而加速乳糖轉化為乳酸與短鏈脂肪酸。此外，分子結構分析指出 HBP-L 與 HBP-H 的醣基利用偏好存在差異，這為開發緩解乳糖不耐症的針對性益生元食品提供了重要的科學理論基礎。</div>
             </div>
 
             <details>
@@ -285,12 +293,13 @@
         <div class="card">
             <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637441/" target="_blank">Microbial succession drives quality deterioration in refrigerated golden pompano (Trachinotus ovatus): regulatory network of dominant spoilage microbiota on characteristic biomarkers.</a></h2>
             <div class="meta">
-                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
                 
                 <span class="badge-tech">🔬 16S</span>
                 
                 <span class="badge-tech">🔬 metabolomics</span>
                 
+                <!-- 🔑 顯示樣本數量徽章 -->
+                <span class="badge-sample">📊 樣本: 未提及</span>
                 <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
                 <span class="badge-if">IF: N/A</span>
                 <span>📅 發表日期: 2026-07-22</span>
@@ -299,7 +308,7 @@
             
             <div class="ai-summary">
                 <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究整合 16S rRNA 基因定序與非靶向代謝組學技術，系統性探討冷藏金鯧魚在儲存過程中的品質劣變機制。研究顯示，魚肉在儲存第 6 天顯著變質，此時 *Psychrobacter*、*Shewanella* 與 *Pseudomonas* 逐漸演替為優勢菌群，使代謝核心從早期的核苷酸降解轉向後期的蛋白質水解與氨基酸代謝。研究進一步篩選出 50 種潛在腐敗標誌物，其中組胺、酪胺及苯乙胺等生物胺為關鍵指標。關聯分析證實，*Pseudomonas* 和 *Shewanella* 是驅動這些生物胺生成的主要核心菌群。本研究揭示了金鯧魚的腐敗機制，為食品早期變質檢測與標靶抗菌策略提供了重要依據。</div>
+                <div class="ai-summary-content">本研究探討冷藏黃金鯧魚（Trachinotus ovatus）的品質劣變機制。透過結合 16S rRNA 擴增子定序與非標靶代謝組學，分析微生物群落演替與代謝產物變化的關聯。結果顯示，隨著冷藏時間增加，TVB-N 與 TBARS 值持續上升，顯示第 6 天起出現顯著腐敗。微生物群落演替顯示 *Psychrobacter*、*Shewanella* 與 *Pseudomonas* 為後期優勢菌群，其代謝重心由早期的核苷酸降解轉向後期的蛋白質水解與胺基酸代謝。研究篩選出 50 個腐敗生物標誌物，其中組織胺、酪胺與苯乙胺等生物胺被認定為關鍵指標。相關性網路分析指出 *Pseudomonas* 與 *Shewanella* 是驅動生物胺累積的核心功能菌群。本研究釐清了冷藏黃金鯧魚的腐敗途徑，為早期檢測標誌物篩選及開發針對性抗菌策略提供了科學依據。</div>
             </div>
 
             <details>
