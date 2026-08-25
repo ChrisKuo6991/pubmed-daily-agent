@@ -4,319 +4,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PubMed 每日論文 AI 摘要快訊 by 克里斯</title>
+    <title>PubMed 每日論文 AI 快訊與資料庫</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
         header { background: #0056b3; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         header h1 { margin: 0; font-size: 24px; }
-        header p { margin: 5px 0 0 0; opacity: 0.8; font-size: 14px; }
-        .keyword-tag { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold; }
+        
+        /* 篩選與搜尋面板 */
+        .filter-panel { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .filter-group { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+        .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .btn-reset { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-reset:hover { background: #5a6268; }
+
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .card h2 { margin-top: 0; font-size: 18px; }
+        .card h2 { margin-top: 0; font-size: 18px; line-height: 1.4; }
         .card h2 a { color: #0056b3; text-decoration: none; }
         .card h2 a:hover { text-decoration: underline; }
         .meta { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         .badge-tech { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        
-        /* 🔑 新增樣本數量標籤樣式 */
         .badge-sample { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        
+        .badge-fulltext { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+
         .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
-        .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; }
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
+
+        /* 分頁元件 */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 30px 0; }
+        .pagination button { background: #0056b3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .pagination button:disabled { background: #ccc; cursor: not-allowed; }
+        .page-info { font-size: 14px; font-weight: 500; }
         
         details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
-        summary { cursor: pointer; font-weight: 500; color: #666; }
-        summary:hover { color: #0056b3; }
-        .abstract-en { margin-top: 8px; line-height: 1.5; }
+        summary { cursor: pointer; font-weight: 500; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>PubMed 每日最新論文 AI 快訊 by 克里斯</h1>
-            <p>搜尋主題：
-                
-                <span class="keyword-tag">Microbiome</span>
-                
-                <span class="keyword-tag">metagenome</span>
-                
-                <span class="keyword-tag">metagenomic</span>
-                
-            </p>
-            <p>最後更新時間：2026-08-25 15:33:13 (Asia/Taipei)</p>
+            <h1>PubMed 每日最新論文 AI 快訊與檢索庫</h1>
+            <p>資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 | 最後更新：2026-08-25 15:55:56</p>
         </header>
 
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42635406/" target="_blank">Separating extracellular from intracellular fecal metabolites exposes cross-feeding architecture in the gut: exploring metabolite partitioning and ecological associations.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 metagenomics</span>
-                
-                <span class="badge-tech">🔬 metabolomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 63 位健康受試者的糞便檢體</span>
-                <span class="badge-journal">📖 Gut microbes</span>
-                <span class="badge-if">IF: 11.0</span>
-                <span>📅 發表日期: 2026-08-24</span>
-                <span>PMID: 42635406</span>
+        <!-- 篩選控制列 -->
+        <div class="filter-panel">
+            <div class="filter-group">
+                <label>📅 開始日期:</label>
+                <input type="date" id="filter-start-date">
             </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究開發了一種區分腸道細胞內與細胞外代謝物的新方法，藉由分析63位健康受試者的糞便，量化短鏈脂肪酸、多胺和水溶性維生素。研究將代謝組與宏基因組數據整合，發現維生素可分為「細胞內保留型」（如B1、B3、B12輔酶）與「細胞外富集型」（如B5、B7）。其中，細胞內的B1與*Blautia*菌呈負相關，反映了微生物的積極利用；而細胞外的B7則與*Alistipes*菌呈強正相關，與特定的生態棲位相關。此技術成功將「基因組潛力」與「代謝組實況」連結，為解析腸道菌群的交互餵養（cross-feeding）機制提供了實用框架。</div>
+            <div class="filter-group">
+                <label>📅 結束日期:</label>
+                <input type="date" id="filter-end-date">
             </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">The gut microbiota forms a complex ecosystem through metabolic interdependence (cross-feeding). However, conventional fecal metabolomics typically quantifies only total metabolite pools, making it difficult to distinguish extracellular-enriched metabolite pools from predominantly cell-associated ones, and thus limiting reconstruction of in situ metabolic networks. Here, we quantified fecal metabolites in paired fractions from the same specimen: an undisrupted fraction representing the extracellular pool and a strongly bead-beaten fraction representing the total pool; the intracellular pool was defined as the difference between total and extracellular measurements. Stool samples from 63 healthy individuals were analyzed for short-chain fatty acids, polyamines, and water-soluble vitamins, and the results were integrated with shotgun metagenomic profiles of species composition and functional genes. Vitamins exhibited two distinct behaviors. Adenosylcobalamin (a vitamin B12 coenzyme) was detectable only after disruption, and together with thiamine (B1) and niacin (B3) was classified as an intracellular-retained type (Type 1). In contrast, biotin (B7) and pantothenate (B5) showed higher extracellular proportions (Type 2). Integrative analyses further indicated that Type 1 thiamine was negatively associated with Blautia, consistent with intensive microbial utilization, whereas Type 2 biotin was strongly positively associated with Alistipes, suggesting links to ecological niches shaped by luminal pH and fermentation modes (carbohydrate vs protein fermentation). Fraction-resolved quantification provides a practical operational framework to differentiate extracellular from cell-associated metabolite pools, helping reconcile metagenomic potential with metabolomic reality and enabling deeper inference of cross-feeding structure in the gut ecosystem.</div>
-            </details>
+            <div class="filter-group">
+                <label>🔬 技術類型:</label>
+                <select id="filter-tech">
+                    <option value="">全部技術</option>
+                    <option value="16S">16S</option>
+                    <option value="metagenomics">metagenomics</option>
+                    <option value="metatranscriptomics">metatranscriptomics</option>
+                    <option value="metabolomics">metabolomics</option>
+                    <option value="small genome">small genome</option>
+                    <option value="others">others</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🔍 關鍵字:</label>
+                <input type="text" id="filter-search" placeholder="搜尋標題/摘要/期刊...">
+            </div>
+            <button class="btn-reset" onclick="resetFilters()">重置篩選</button>
         </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42635403/" target="_blank">Baseline gut microbiome ecology predicts long-term fat mass loss after bariatric surgery: evidence for a thrifty Bifidobacterium phenotype.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 16S</span>
-                
-                <span class="badge-tech">🔬 metabolomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 85 位接受減重手術的嚴重肥胖患者與 21 位健康對照組</span>
-                <span class="badge-journal">📖 Gut microbes</span>
-                <span class="badge-if">IF: 11.0</span>
-                <span>📅 發表日期: 2026-08-24</span>
-                <span>PMID: 42635403</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究旨在評估減重手術（BS）與地中海飲食對腸道菌相及代謝物的長期影響。研究發現，手術能顯著重塑腸道微生態，使其達致新型適應狀態而非完全恢復正常。關鍵在於，患者術前的腸道生態會預測其長期減脂成效：術前擁有高豐度雙歧桿菌（Bifidobacterium）的患者，在術後24個月的脂肪減輕量顯著較少（6.6% vs 13.2%）。這表明高豐度的雙歧桿菌可能扮演「節約型菌相」角色，會最大化能量吸收並限制術後脂肪流失。此發現強調了術前進行精準微生態干預的潛力。</div>
-            </div>
 
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Bariatric surgery (BS) induces weight loss, but long-term success involves complex host-microbiome interactions. We evaluated the longitudinal impact of BS, microbiome resilience, and Mediterranean Diet (MedDiet) adherence up to 24 months. This prospective observational study included 85 patients with severe obesity undergoing BS and 21 normal-weight healthy controls (HC). MedDiet adherence (PREDIMED) was assessed before surgery. Fecal microbiota (16S-rRNA sequencing) and metabolomics (1H-NMR spectroscopy) were analyzed at baseline and at 1-, 6-, and 12-months post-BS. Clinical outcomes and fat mass, evaluated by bioimpedanciometry, were tracked up to 24 months. At baseline, patients exhibited higher microbial Shannon diversity than controls (p = 0.041), alongside a dysfunctional microbiome and metabolome characterized by a higher Firmicutes/Bacteroidetes ratio and elevated levels of branched-chain amino acids (p < 0.0001). Ordinary Least Squares (OLS) regression analysis revealed that MedDiet adherence and type 2 diabetes status significantly modulated baseline diversity. At 12 months post-BS, the gut ecosystem underwent profound remodeling, characterized by depletion of Bifidobacterium spp. and an increase in butyrate levels (p < 0.0001), establishing a novel adaptive state distinct from HC. Baseline gut ecology significantly conditioned long-term BS outcomes: patients in the highest quartile of baseline Bifidobacterium spp. lost significantly less fat mass at 24 months than those in the lowest (6.6% vs. 13.2%, p = 0.010). High baseline Bifidobacterium abundance paradoxically acts as a "thrifty microbiome," potentially maximizing energy harvest and limiting surgery-induced fat loss. Overall, BS induces adaptive microbiome restoration rather than true normalization, highlighting the potential for precision interventions prior to surgery.</div>
-            </details>
-        </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42635401/" target="_blank">Fecal filtrate transplantation as salvage therapy for fulminant Clostridioides difficile infection in adult hematological patients during chemotherapy-induced aplasia: a pilot experience.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 16S</span>
-                
-                <span class="badge-tech">🔬 metagenomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 3 位血液腫瘍合併嚴重困難梭狀芽孢桿菌感染的患者</span>
-                <span class="badge-journal">📖 Gut microbes</span>
-                <span class="badge-if">IF: 11.0</span>
-                <span>📅 發表日期: 2026-08-24</span>
-                <span>PMID: 42635401</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究旨在評估糞便濾液移植（FFT）作為挽救性療法，治療化療引起骨髓造血功能停滯且併發嚴重困難梭狀芽孢桿菌感染（CDI）的成年血液腫瘍患者之療效，並探討噬菌體群動力學。此臨床試驗共納入 3 位對常規藥物治療無效的急性髓細胞性白血病患者。結果顯示，所有患者在接受 FFT 後 14 天內皆達到臨床緩解、腹脹與發炎指標改善，且無治療相關的嚴重不良反應。微生物與噬菌體體學分析顯示，菌群結構發生異質性改變，且可能誘導了患者體內梭狀芽孢桿菌的溫和噬菌體進入裂解期，從而促進去定殖。本研究證實 FFT 在此類高風險免疫抑制患者中具有可行性與安全性，能迅速且持續地緩解 CDI。</div>
-            </div>
+        <!-- 文章容器 -->
+        <div id="articles-list"></div>
 
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Fulminant Clostridioides difficile infection (CDI) in patients with hematologic malignancies during chemotherapy-induced aplasia carries high mortality and limited treatment options. Our objective was to evaluate fecal filtrate transplantation (FFT) as a salvage therapy for fulminant CDI during aplasia, and to explore whether donor-recipient phage dynamics may contribute to clinical response. We conducted a single-center, prospective, protocol-defined pilot case series study including consecutive adults with hematologic malignancies, chemotherapy-induced grade-4 aplasia and fulminant CDI, refractory to ≥5 d of high-dose oral vancomycin plus intravenous metronidazole and tigecycline. FFT was prepared from a single unrelated donor using sequential centrifugation and filtration, and administered via nasogastric tube in two doses. The primary outcome was sustained clinical cure, secondary outcomes included survival and adverse events, assessed at +14 and +30 d post-FFT. 16S rRNA gene sequencing was used to assess microbiome compositions, while viral metagenomics and in vitro propagation assays were employed to characterize donor-recipient phageome interactions. Three patients with adverse-risk acute myeloid leukemia and fulminant CDI caused by genetically distinct C. difficile strains received FFT. All patients achieved clinical resolution by day +14, accompanied by improvements in abdominal distension and inflammatory markers. By day +30, one patient died from Pseudomonas aeruginosa septic shock, while two maintained remission with confirmatory follow-up. FFT was well tolerated, with no procedure-related immediate complications or FFT-attributable adverse events. Microbiome and phage profiling revealed heterogeneous responses, including shifts in bacterial community composition, with no clear evidence for a general role of donor-derived phages in CDI resolution. In contrast, we observed induction of prophages harbored by recipient-associated Clostridium species, which may have contributed to decolonization through stress-induced entry into the lytic cycle. FFT was feasible, with rapid sustained CDI resolution in hematologic patients with chemotherapy-induced aplasia. ClinicalTrials.gov identifier NCT07172191. Prospective single-center pilot study of fecal filtrate transplantation (FFT) for fulminant-refractory C. difficile infection in three aplastic adult hematologic patients. FFT was well tolerated, achieved rapid clinical cure, and showed heterogeneous microbiome and phageome modulation, potentially contributing to therapeutic effects.</div>
-            </details>
+        <!-- 分頁控制欄 -->
+        <div class="pagination">
+            <button id="btn-prev" onclick="changePage(-1)">上一頁</button>
+            <span class="page-info" id="page-info">第 1 頁 / 共 1 頁</span>
+            <button id="btn-next" onclick="changePage(1)">下一頁</button>
         </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42634246/" target="_blank">Natural microbiota confer life-long protection against obesity via an early-life, immune-mediated effect on brown adipocytes.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 others</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 未提及</span>
-                <span class="badge-journal">📖 Gut microbes</span>
-                <span class="badge-if">IF: 11.0</span>
-                <span>📅 發表日期: 2026-08-23</span>
-                <span>PMID: 42634246</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討野生小鼠的天然腸道菌群如何賦予宿主對抗飲食誘導肥胖的終身保護效應。研究發現，引入天然菌群能顯著增加小鼠的能量消耗並減少體重增加。透過單核 RNA 定序分析，發現天然菌群能增強褐色脂肪組織（BAT）的產熱活性。進一步機制研究證實，此保護作用並非透過先天免疫類型 2 訊號路徑，而是依賴於早期生命階段中，由 CCR2+ 骨髓細胞浸潤至褐色脂肪組織所引發的免疫反應。透過將骨髓細胞注射至 CCR2 缺陷小鼠，可成功恢復其對抗肥胖的保護能力。此發現揭示了「菌群－免疫－脂肪組織」的新型調節軸，解釋了早期微生物接觸如何透過免疫調節長效性地影響代謝健康與能量平衡，為肥胖防治提供了潛在的微生物標靶。</div>
-            </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Obesity, a major risk factor for metabolic disease, has increased in industrialized nations alongside a reduction in gut microbiota diversity. Reconstituting laboratory mice with complex, natural microbiota and commensals from wild mice resulted in protection against diet-induced obesity. These natural microbiota reduced weight gain in both male and female mice of different genetic backgrounds throughout their life and increased energy expenditure. Single-nuclei RNA sequencing identified a dominant adipocyte population in brown adipose tissue (BAT) with a transcriptional signature of increased thermogenic activity, while white adipose tissue mass and beiging were reduced. Protection against diet-induced obesity was transferable to adult germ-free mice via exposure to natural microbiota, indicating an association with the timing of immune response induction rather than BAT developmental programming. However, protection against diet-induced obesity did not require type 2 immune signaling, as shown in STAT6 knockout mice. Rather, it was associated with increased levels of chemokines and monocytes in BAT in early life, pointing to a role of infiltrating myeloid cells. Indeed, CCR2-deficient mice with natural microbiota lacked the BAT transcriptional signature of increased thermogenic activity, increased energy expenditure, and protection against diet-induced obesity that wild-type mice with natural microbiota exhibited. The latter was restored upon injection with wild-type bone marrow. Taken together, these findings identify a novel microbiota‒immune‒adipose tissue axis that results in increased BAT thermogenesis and improved energy balance throughout life.</div>
-            </details>
-        </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637484/" target="_blank">Insights into the analysis of microbial communities in fermented foods from the perspective of DNA-based techniques.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 16S</span>
-                
-                <span class="badge-tech">🔬 metagenomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 未提及</span>
-                <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
-                <span class="badge-if">IF: N/A</span>
-                <span>📅 發表日期: 2026-07-27</span>
-                <span>PMID: 42637484</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本文為一篇綜述，系統性探討了以 DNA 為基礎的擴增子定序與總體基因體學技術在發酵食品微生物群落中的應用。文章詳細整理了數據預處理、特定資料庫選擇及下游分析策略（如群落多樣性、共發生網路和機器學習預測）。指出擴增子定序能高效揭示發酵過程中的微生物演替，而總體基因體學則在功能註解及代謝潛力關聯上具備顯著優勢。最後，強調標準化分析流程與數據組成性特徵的驗證，對於推動精準發酵時代的到來至關重要。</div>
-            </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">The quality, flavor, and stability of fermented foods depend on the microbial community. However, microbial dynamics are difficult to observe directly, leading to limited control over fermentation. High-throughput sequencing is a revolutionary tool for microbial characterization, among which DNA-based amplicon and metagenomic sequencing are core techniques. Nevertheless, the related data processing workflows in the context of fermented foods have not yet been systematically summarized, hindering the translation of research findings into fermentation practices. This review clarifies the applications of amplicon and metagenomic sequencing in fermented foods. For amplicon sequencing, the impacts of target regions, data preprocessing, and reference databases are addressed. For metagenomic sequencing, sequencing strategies, read-based and binning-based analytical methods, functional annotation, and species-specific databases are discussed. In addition, major strategies for downstream analysis of community data are summarized, including microbial diversity, co-occurrence networks, niche and community assembly, key environmental drivers, and machine learning-based prediction. Amplicon sequencing efficiently reveals microbial succession during fermentation but has limitations in functional annotation. Metagenomic sequencing is notable for functional annotation, enabling the linkage between microbial communities and metabolic potential alongside community characterization. Standardized data preprocessing and specific databases are critical for improving characterization. For community data, integrated analysis allows uncovering the driving factors of microbial succession, thereby helping to regulate fermentation. Notably, the compositional nature of the data must be considered and validated to avoid spurious associations. In summary, the exponential growth of sequencing data will propel the era of precision fermentation.</div>
-            </details>
-        </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637478/" target="_blank">Effects of sorghum variety on fermentation microecology and flavor characteristics of sesame-flavor Baijiu.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 16S</span>
-                
-                <span class="badge-tech">🔬 metabolomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 未提及（摘要僅提及針對三種高粱品種進行兩個連續發酵輪次的採樣分析）</span>
-                <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
-                <span class="badge-if">IF: N/A</span>
-                <span>📅 發表日期: 2026-07-24</span>
-                <span>PMID: 42637478</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討不同品種高粱（紅纓子、黑鵝及國產高粱）對芝麻香型白酒發酵微生態與風味形成的影響。研究分析了發酵過程中酒醅的理化性質、酶活性、微生物群落結構及揮發性化合物組成。結果顯示，儘管三種高粱的發酵趨勢相似，但在酸度積累、澱粉利用率、微生物演替（真菌由畢赤酵母主導轉向多菌種共存，細菌則趨向乳酸桿菌主導）及揮發性風味物質上存在顯著差異。酯類是造成風味差異的主要關鍵，且不同品種與發酵輪次對香氣物質的富集各有優劣。此研究證實高粱品種是調控白酒微生態與風味的重要因子，可作為工業生產中優化製程與篩選原料的科學依據。</div>
-            </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Sorghum, the principal raw material for Baijiu fermentation, plays a key role in shaping fermentation microecology and flavor formation. However, the effects of sorghum varietal differences on sesame-flavor Baijiu fermentation remain insufficiently understood. In this study, three sorghum varieties, Hongyingzi (R), Hei'e (B), and a domestic cultivar (G), were compared over two consecutive fermentation rounds. Fermented grain (Jiupei) samples collected at 0, 15, and 50 days were analyzed for physicochemical properties, enzyme activities, microbial communities, volatile compounds in Jiupei and base liquor, and the taste characteristics of the corresponding base liquor. Despite showing similar overall fermentation trends, the three sorghum varieties differed in acid accumulation, starch utilization, microbial succession, and volatile composition. Fungal communities shifted from early Pichia dominance to multi-genus coexistence, whereas bacterial communities progressively converged toward Lactobacillus dominance. A total of 218 and 258 volatile compounds were identified in Jiupei and 176 and 192 in base liquor from the first and second rounds, respectively. Esters were the dominant differential class, and volatile-marker profiles varied among sorghum varieties and fermentation rounds, with no single variety showing consistent enrichment across all sesame-flavor-related compounds. These results indicate that sorghum variety is an important factor associated with microbial assembly and flavor formation during sesame-flavor Baijiu fermentation, and provide a basis for raw material selection and flavor-oriented process optimization.</div>
-            </details>
-        </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637476/" target="_blank">A Shenling Baizhu San polysaccharide fraction (SLP-2)-based synbiotic alleviates lactose-induced gut dysfunction via a microbiota-metabolite-barrier axis.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 metabolomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 未提及</span>
-                <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
-                <span class="badge-if">IF: N/A</span>
-                <span>📅 發表日期: 2026-07-24</span>
-                <span>PMID: 42637476</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究旨在探討參苓白朮散中的活性多醣組分（SLP-2）及其作為合生元（synbiotic）對乳糖不耐症引起的腸道功能障礙之改善效果。研究團隊通過人體糞便發酵、單一菌株培養及高乳糖飲食（HLD）大鼠模型，證實 SLP-2 能有效富集益菌（如 *Akkermansia muciniphila* 與 *Eubacterium* 相關菌群）。結合 SLP-2 與目標菌株的合生元策略，被證實能顯著提升腸道屏障功能，包括增加緊密連接蛋白與 MUC2 表達，並改善腸道結構與黏液層厚度。此外，多體學分析揭示了關鍵共代謝產物（如 6-MGG、HTy-Ac 與 DHPV-G）在腸道修復及免疫調節中的重要作用，提升了抗發炎因子 IL-10 並降低 TLR4 表現。該研究為開發基於天然多醣的合生元介入策略提供了重要的臨床前證據。</div>
-            </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Lactose intolerance (LI) is a common digestive disorder, and its management still relies largely on dietary restriction. Because gut microbial fermentation and barrier dysfunction contribute to LI-related symptoms, microbiota-targeted prebiotic or synbiotic strategies may provide complementary approaches. However, the active plant-polysaccharide fractions and their microbial partners remain unclear. This study aimed to identify the bioactive polysaccharide fraction from Shenling Baizhu San and evaluate its pairing with responder bacteria for alleviating high-lactose diet (HLD)-induced intestinal dysfunction. Stepwise ethanol precipitation yielded SLP-2, which was subsequently identified as the principal bioactive fraction through human fecal fermentation, monoculture assays, and an HLD rat model. SLP-2 enriched Eubacterium-associated taxa and supported the growth of Akkermansia muciniphila in monoculture and in vivo. Building on this, a synbiotic combining SLP-2 with A. muciniphila and E. rectale alleviated HLD-induced gut dysfunction; the antibiotic-matched comparison with the probiotics-only group supported an SLP-2-associated contribution. The synbiotic intervention was associated with increased tight junction proteins, MUC2 expression, improved intestinal architecture, and thicker mucus layers. Multi-omics analysis linked co-metabolites, including intestinal 6-MGG and HTy-Ac and systemic DHPV-G, with barrier restoration and an immune profile characterized by increased IL-10 and lower TLR4 expression. These findings suggest that SLP-2-based synbiotic intervention alleviates HLD-induced intestinal dysfunction through microbiota-metabolite-barrier modulation, providing preclinical evidence for future functional-food strategies pending human validation.</div>
-            </details>
-        </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637471/" target="_blank">Fucoidan from giant kelp alleviates postmenopausal osteoporosis by regulating the betaine-OPG/RANKL/RANK signaling axis.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 16S</span>
-                
-                <span class="badge-tech">🔬 metabolomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 未提及</span>
-                <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
-                <span class="badge-if">IF: N/A</span>
-                <span>📅 發表日期: 2026-07-24</span>
-                <span>PMID: 42637471</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討巨藻岩藻多醣（GKP）對停經後骨質疏鬆（PMOP）的保護機制。在卵巢切除小鼠模型中，GKP 可改善骨小樑結構並抑制破骨細胞生成。研究發現 GKP 能重塑腸道菌群，降低 Bacteroidota/Firmicutes 比例並促進短鏈脂肪酸產生。透過代謝體學分析，證實 GKP 可引發全身性代謝重編程，特別是提升甜菜鹼（betaine）的含量。進一步實驗證實，甜菜鹼能透過調控 OPG/RANKL/RANK 信號軸抑制破骨細胞分化與發炎反應。結論指出，GKP 透過調節腸道微生物與代謝產物（特別是甜菜鹼）達到抗骨質疏鬆效果，為相關營養干預提供了理論基礎。</div>
-            </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Postmenopausal osteoporosis (PMOP), characterized by excessive bone resorption and impaired bone remodeling, remains a significant global health challenge. This study investigated the protective effects of fucoidan from giant kelp (GKP) against PMOP and its underlying mechanisms in ovariectomized mice. GKP supplementation attenuated bone loss by preserving trabecular microarchitecture, normalizing systemic mineral homeostasis, and suppressing osteoclastogenesis, as evidenced by the downregulation of osteoclast-related genes. 16S rRNA gene sequencing revealed that GKP reshaped the gut microbiota by decreasing the Bacteroidota/Firmicutes ratio and enriching beneficial taxa, which promoted short-chain fatty acid production. Targeted metabolomics revealed that GKP induced profound systemic metabolic reprogramming, particularly amino acid metabolism, and identified betaine as a key systemic metabolite effector upregulated following GKP treatment. In vitro assays demonstrated that betaine suppressed receptor activator of nuclear factor-κB ligand (RANKL)-induced osteoclast differentiation and mitigated inflammation. In vivo validation demonstrated that betaine intervention recapitulated the osteoprotective phenotype observed in GKP-treated mice, which was associated with regulation of the osteoprotegerin/RANKL/RANK signaling axis. These results indicate that GKP exerts anti-osteoporotic effects in association with changes in gut microbiota and systemic metabolism, while betaine-mediated regulation of the OPG/RANKL/RANK signaling may contribute to its osteoprotective activity.</div>
-            </details>
-        </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637450/" target="_blank">Highland barley polysaccharides promoted lactose intestinal fermentation in vitro: Unveiling the dynamic response of gut microbiota and polysaccharide structure.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 16S</span>
-                
-                <span class="badge-tech">🔬 metabolomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 未提及</span>
-                <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
-                <span class="badge-if">IF: N/A</span>
-                <span>📅 發表日期: 2026-07-24</span>
-                <span>PMID: 42637450</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討青稞多醣（HBP）作為益生元，在乳糖不耐症體外發酵模型中對乳糖代謝的促進作用。結果顯示，添加 HBP 能顯著提升乳糖發酵效率，尤以低分子量之 HBP-L 效果更佳，發酵 48 小時後乳糖消耗量提升 29%。實驗發現 HBP-L 能促進腸道中 *Segatella*、*Bifidobacterium* 與 *Ligilactobacillus* 等菌群的豐度，並增加細菌乳糖酶活性，進而加速乳糖轉化為乳酸與短鏈脂肪酸。此外，分子結構分析指出 HBP-L 與 HBP-H 的醣基利用偏好存在差異，這為開發緩解乳糖不耐症的針對性益生元食品提供了重要的科學理論基礎。</div>
-            </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Lactose intolerance affects over 70% of the global population due to the untimely metabolism of lactose in the colon. To accelerate lactose metabolism, we innovatively employed highland barley polysaccharides (HBP) to modulate the colonic fermentation efficiency of lactose using an in vitro fermentation model and fecal samples from lactose intolerant patients. With the addition of HBP, the consumption efficiency of lactose began to increase after 6 h of fermentation. At 48 h, lactose consumption increased by 29%, surpassing the effect of commercial prebiotics. Meanwhile, HBP with lower molecular weight (HBP-L, 8.69 × 104 g/Mol) exhibited more effective impacts than HBP with high molecular weight (HBP-H, 1.22 × 105 g/Mol), which was particularly evident during the 12-48 h of fermentation. More importantly, HBP, particularly HBP-L, substantially enriched Segatella, Bifidobacterium, and Ligilactobacillus in a time-dependent manner and was positively correlated with decreased lactose levels and elevated bacterial lactase activity, resulting in significant conversion of lactose to lactic acid and short-chain fatty acids. During the first 12 h of fermentation, HBP-L underwent more significant degradation than HBP-H. Meanwhile, the xylose residues and Glcp glycosidic bonds in HBP-L were preferentially utilized, while it was glucose residue in HBP-H. Thus, it indicated that HBPs were degraded and altered the composition of the gut microbiota, thereby enhancing the fermentation efficiency of lactose. Our findings provide a theoretical basis for developing targeted prebiotic foods to manage lactose intolerance.</div>
-            </details>
-        </div>
-        
-        <div class="card">
-            <h2><a href="https://pubmed.ncbi.nlm.nih.gov/42637441/" target="_blank">Microbial succession drives quality deterioration in refrigerated golden pompano (Trachinotus ovatus): regulatory network of dominant spoilage microbiota on characteristic biomarkers.</a></h2>
-            <div class="meta">
-                
-                <span class="badge-tech">🔬 16S</span>
-                
-                <span class="badge-tech">🔬 metabolomics</span>
-                
-                <!-- 🔑 顯示樣本數量徽章 -->
-                <span class="badge-sample">📊 樣本: 未提及</span>
-                <span class="badge-journal">📖 Food research international (Ottawa, Ont.)</span>
-                <span class="badge-if">IF: N/A</span>
-                <span>📅 發表日期: 2026-07-22</span>
-                <span>PMID: 42637441</span>
-            </div>
-            
-            <div class="ai-summary">
-                <div class="ai-summary-title">🤖 AI 核心解述 (250字內)</div>
-                <div class="ai-summary-content">本研究探討冷藏黃金鯧魚（Trachinotus ovatus）的品質劣變機制。透過結合 16S rRNA 擴增子定序與非標靶代謝組學，分析微生物群落演替與代謝產物變化的關聯。結果顯示，隨著冷藏時間增加，TVB-N 與 TBARS 值持續上升，顯示第 6 天起出現顯著腐敗。微生物群落演替顯示 *Psychrobacter*、*Shewanella* 與 *Pseudomonas* 為後期優勢菌群，其代謝重心由早期的核苷酸降解轉向後期的蛋白質水解與胺基酸代謝。研究篩選出 50 個腐敗生物標誌物，其中組織胺、酪胺與苯乙胺等生物胺被認定為關鍵指標。相關性網路分析指出 *Pseudomonas* 與 *Shewanella* 是驅動生物胺累積的核心功能菌群。本研究釐清了冷藏黃金鯧魚的腐敗途徑，為早期檢測標誌物篩選及開發針對性抗菌策略提供了科學依據。</div>
-            </div>
-
-            <details>
-                <summary>查看英文原文摘要 (Abstract)</summary>
-                <div class="abstract-en">Elucidating the quality deterioration mechanisms of refrigerated golden pompano (Trachinotus ovatus), this study integrated 16S rRNA gene sequencing and untargeted metabolomics to systematically dissect how microbial ecological succession drives metabolic changes. As critical spoilage indicators, total volatile basic nitrogen (TVB-N) and thiobarbituric acid reactive substances (TBARS) continuously increased during storage, indicating significant deterioration by day 6. Microbial community succession analysis revealed that Psychrobacter, Shewanella, and Pseudomonas gradually became the dominant microbiota in the late storage stage. Metabolite enrichment analysis further demonstrated that this shift redirected the metabolic focus from early-stage nucleotide degradation to late-stage protein hydrolysis and amino acid metabolism. Moreover, multivariate statistical analysis identified 50 potential spoilage biomarkers, among which biogenic amines (histamine, tyramine, and phenylethylamine) were recognized as key indicators reflecting spoilage progression. Correlation network analysis revealed positive correlations between Pseudomonas and Shewanella abundances and the accumulation of these biogenic amines. This suggests that these two genera act as the core functional microbiota, driving spoilage metabolite generation and subsequent quality deterioration. Pathway analysis of potential spoilage biomarker generation indicates that amino acid and nucleotide metabolism constitute the core spoilage pathways, with lipid oxidation serving as a complementary mechanism. Overall, this study elucidates the spoilage mechanisms of refrigerated golden pompano, providing chemical targets for early biomarker detection and targeted antibacterial strategies.</div>
-            </details>
-        </div>
-        
     </div>
+
+    <script>
+        // 載入完整歷史資料庫 (JSON 格式注入)
+        const rawArticlesData = [{"pmid": "42635406", "title": "Separating extracellular from intracellular fecal metabolites exposes cross-feeding architecture in the gut: exploring metabolite partitioning and ecological associations.", "journal": "Gut microbes", "impact_factor": "11.0", "tech_types": "metagenomics, metabolomics", "sample_size": "63 位健康受試者的糞便檢體", "has_fulltext": false, "abstract": "The gut microbiota forms a complex ecosystem through metabolic interdependence (cross-feeding). However, conventional fecal metabolomics typically quantifies only total metabolite pools, making it difficult to distinguish extracellular-enriched metabolite pools from predominantly cell-associated ones, and thus limiting reconstruction of in situ metabolic networks. Here, we quantified fecal metabolites in paired fractions from the same specimen: an undisrupted fraction representing the extracellular pool and a strongly bead-beaten fraction representing the total pool; the intracellular pool was defined as the difference between total and extracellular measurements. Stool samples from 63 healthy individuals were analyzed for short-chain fatty acids, polyamines, and water-soluble vitamins, and the results were integrated with shotgun metagenomic profiles of species composition and functional genes. Vitamins exhibited two distinct behaviors. Adenosylcobalamin (a vitamin B12 coenzyme) was detectable only after disruption, and together with thiamine (B1) and niacin (B3) was classified as an intracellular-retained type (Type 1). In contrast, biotin (B7) and pantothenate (B5) showed higher extracellular proportions (Type 2). Integrative analyses further indicated that Type 1 thiamine was negatively associated with Blautia, consistent with intensive microbial utilization, whereas Type 2 biotin was strongly positively associated with Alistipes, suggesting links to ecological niches shaped by luminal pH and fermentation modes (carbohydrate vs protein fermentation). Fraction-resolved quantification provides a practical operational framework to differentiate extracellular from cell-associated metabolite pools, helping reconcile metagenomic potential with metabolomic reality and enabling deeper inference of cross-feeding structure in the gut ecosystem.", "zh_summary": "本研究旨在解決傳統糞便代謝組學僅能測量總代謝物，而無法區分細胞內外代謝物，導致難以重構腸道菌群互利共棲網絡的瓶頸。研究團隊分析了63位健康受試者的糞便檢體，透過比較未處理（細胞外）與珠擊破碎（總量）的樣本以區分細胞內外代謝物，並結合總體基因體學分析。結果發現，維生素具有兩種分布模式：B12、B1、B3 主要保留在細胞內（第一型），而 B7、B5 則富集於細胞外（第二型）。整合分析顯示，第一型B1與Blautia呈負相關（反映菌株積極利用），第二型B7與Alistipes呈正相關。本研究提供的新型定量框架，成功連結了基因體潛力與實際代謝表型，對解析腸道生態系共棲結構具重要科學意義。", "date": "2026-08-24", "url": "https://pubmed.ncbi.nlm.nih.gov/42635406/"}, {"pmid": "42635403", "title": "Baseline gut microbiome ecology predicts long-term fat mass loss after bariatric surgery: evidence for a thrifty Bifidobacterium phenotype.", "journal": "Gut microbes", "impact_factor": "11.0", "tech_types": "16S, metabolomics", "sample_size": "85 位嚴重肥胖的減重手術患者、21 位體重正常的健康對照組（共 106 名受試者）", "has_fulltext": false, "abstract": "Bariatric surgery (BS) induces weight loss, but long-term success involves complex host-microbiome interactions. We evaluated the longitudinal impact of BS, microbiome resilience, and Mediterranean Diet (MedDiet) adherence up to 24 months. This prospective observational study included 85 patients with severe obesity undergoing BS and 21 normal-weight healthy controls (HC). MedDiet adherence (PREDIMED) was assessed before surgery. Fecal microbiota (16S-rRNA sequencing) and metabolomics (1H-NMR spectroscopy) were analyzed at baseline and at 1-, 6-, and 12-months post-BS. Clinical outcomes and fat mass, evaluated by bioimpedanciometry, were tracked up to 24 months. At baseline, patients exhibited higher microbial Shannon diversity than controls (p = 0.041), alongside a dysfunctional microbiome and metabolome characterized by a higher Firmicutes/Bacteroidetes ratio and elevated levels of branched-chain amino acids (p < 0.0001). Ordinary Least Squares (OLS) regression analysis revealed that MedDiet adherence and type 2 diabetes status significantly modulated baseline diversity. At 12 months post-BS, the gut ecosystem underwent profound remodeling, characterized by depletion of Bifidobacterium spp. and an increase in butyrate levels (p < 0.0001), establishing a novel adaptive state distinct from HC. Baseline gut ecology significantly conditioned long-term BS outcomes: patients in the highest quartile of baseline Bifidobacterium spp. lost significantly less fat mass at 24 months than those in the lowest (6.6% vs. 13.2%, p = 0.010). High baseline Bifidobacterium abundance paradoxically acts as a \"thrifty microbiome,\" potentially maximizing energy harvest and limiting surgery-induced fat loss. Overall, BS induces adaptive microbiome restoration rather than true normalization, highlighting the potential for precision interventions prior to surgery.", "zh_summary": "本研究探討減重手術（BS）後，腸道微生物群組成、地中海飲食依從性與長期減重效果的關聯。研究發現，手術後腸道生態系雖發生顯著重塑（如雙歧桿菌減少、丁酸增加），但並非恢復至健康對照組的狀態，而是進入一種新的適應性平衡。關鍵發現指出，基線時雙歧桿菌（*Bifidobacterium* spp.）豐度較高的患者，在術後 24 個月的脂肪質量減少幅度顯著較低（6.6% vs 13.2%）。這表明高豐度的雙歧桿菌可能發揮「節儉型微生物群」的作用，透過提升能量吸收效率，從而限制手術後的減重效果。此結果凸顯了利用腸道菌相預測手術預後的重要性，未來可針對病患基線微生物特徵進行個人化精準介入，以優化減重成效。", "date": "2026-08-24", "url": "https://pubmed.ncbi.nlm.nih.gov/42635403/"}, {"pmid": "42635401", "title": "Fecal filtrate transplantation as salvage therapy for fulminant Clostridioides difficile infection in adult hematological patients during chemotherapy-induced aplasia: a pilot experience.", "journal": "Gut microbes", "impact_factor": "11.0", "tech_types": "16S, metagenomics", "sample_size": "3 位罹患血液惡性腫瘤且併發抗藥性困難梭狀芽孢桿菌感染的成人患者", "has_fulltext": false, "abstract": "Fulminant Clostridioides difficile infection (CDI) in patients with hematologic malignancies during chemotherapy-induced aplasia carries high mortality and limited treatment options. Our objective was to evaluate fecal filtrate transplantation (FFT) as a salvage therapy for fulminant CDI during aplasia, and to explore whether donor-recipient phage dynamics may contribute to clinical response. We conducted a single-center, prospective, protocol-defined pilot case series study including consecutive adults with hematologic malignancies, chemotherapy-induced grade-4 aplasia and fulminant CDI, refractory to ≥5 d of high-dose oral vancomycin plus intravenous metronidazole and tigecycline. FFT was prepared from a single unrelated donor using sequential centrifugation and filtration, and administered via nasogastric tube in two doses. The primary outcome was sustained clinical cure, secondary outcomes included survival and adverse events, assessed at +14 and +30 d post-FFT. 16S rRNA gene sequencing was used to assess microbiome compositions, while viral metagenomics and in vitro propagation assays were employed to characterize donor-recipient phageome interactions. Three patients with adverse-risk acute myeloid leukemia and fulminant CDI caused by genetically distinct C. difficile strains received FFT. All patients achieved clinical resolution by day +14, accompanied by improvements in abdominal distension and inflammatory markers. By day +30, one patient died from Pseudomonas aeruginosa septic shock, while two maintained remission with confirmatory follow-up. FFT was well tolerated, with no procedure-related immediate complications or FFT-attributable adverse events. Microbiome and phage profiling revealed heterogeneous responses, including shifts in bacterial community composition, with no clear evidence for a general role of donor-derived phages in CDI resolution. In contrast, we observed induction of prophages harbored by recipient-associated Clostridium species, which may have contributed to decolonization through stress-induced entry into the lytic cycle. FFT was feasible, with rapid sustained CDI resolution in hematologic patients with chemotherapy-induced aplasia. ClinicalTrials.gov identifier NCT07172191. Prospective single-center pilot study of fecal filtrate transplantation (FFT) for fulminant-refractory C. difficile infection in three aplastic adult hematologic patients. FFT was well tolerated, achieved rapid clinical cure, and showed heterogeneous microbiome and phageome modulation, potentially contributing to therapeutic effects.", "zh_summary": "本研究旨在評估「糞便濾液移植（FFT）」作為化療誘導性造血功能障礙患者，在面臨猛爆性困難梭狀芽孢桿菌感染（CDI）時的挽救性療法。研究針對 3 名對傳統抗生素治療無效的患者進行試驗，結果顯示所有患者在移植後 14 天內皆達到臨床緩解，且治療過程耐受性良好。透過 16S rRNA 與病毒宏基因體分析發現，治療後的菌相與噬菌體組變化具有異質性；研究並未證實捐贈者的噬菌體直接主導了治療效果，反之，觀察到患者腸道內原有的梭菌屬前噬菌體（prophages）被誘導進入裂解週期，推測此機制可能有助於消除致病菌。此試驗證明 FFT 在免疫力極度低下的血液腫瘤患者中具備臨床可行性與安全性，為抗藥性 CDI 的臨床治療提供了新的潛在策略。", "date": "2026-08-24", "url": "https://pubmed.ncbi.nlm.nih.gov/42635401/"}, {"pmid": "42634246", "title": "Natural microbiota confer life-long protection against obesity via an early-life, immune-mediated effect on brown adipocytes.", "journal": "Gut microbes", "impact_factor": "11.0", "tech_types": "others", "sample_size": "未提及", "has_fulltext": false, "abstract": "Obesity, a major risk factor for metabolic disease, has increased in industrialized nations alongside a reduction in gut microbiota diversity. Reconstituting laboratory mice with complex, natural microbiota and commensals from wild mice resulted in protection against diet-induced obesity. These natural microbiota reduced weight gain in both male and female mice of different genetic backgrounds throughout their life and increased energy expenditure. Single-nuclei RNA sequencing identified a dominant adipocyte population in brown adipose tissue (BAT) with a transcriptional signature of increased thermogenic activity, while white adipose tissue mass and beiging were reduced. Protection against diet-induced obesity was transferable to adult germ-free mice via exposure to natural microbiota, indicating an association with the timing of immune response induction rather than BAT developmental programming. However, protection against diet-induced obesity did not require type 2 immune signaling, as shown in STAT6 knockout mice. Rather, it was associated with increased levels of chemokines and monocytes in BAT in early life, pointing to a role of infiltrating myeloid cells. Indeed, CCR2-deficient mice with natural microbiota lacked the BAT transcriptional signature of increased thermogenic activity, increased energy expenditure, and protection against diet-induced obesity that wild-type mice with natural microbiota exhibited. The latter was restored upon injection with wild-type bone marrow. Taken together, these findings identify a novel microbiota‒immune‒adipose tissue axis that results in increased BAT thermogenesis and improved energy balance throughout life.", "zh_summary": "本研究探討天然腸道微生物群對抗肥胖的機制。研究發現，將野生小鼠的天然微生物群移植至實驗室小鼠，可顯著抑制飲食誘導的體重增加並提升能量消耗。機制分析顯示，這些微生物在生命早期會誘導棕色脂肪組織（BAT）中的免疫反應，增加趨化因子與單核球浸潤。關鍵發現指出，CCR2介導的骨髓源性細胞浸潤對提升BAT產熱活性至關重要；若缺乏CCR2，則無法達到抗肥胖效果。此研究揭示了「微生物—免疫—脂肪組織」的交互作用軸線，證實早期接觸天然微生物群能透過免疫調節，產生終身性的代謝保護作用，為預防代謝疾病提供了新的治療策略方向。", "date": "2026-08-23", "url": "https://pubmed.ncbi.nlm.nih.gov/42634246/"}, {"pmid": "42637395", "title": "Interaction between Hovenia dulcis polysaccharides and dihydromyricetin: A systematic study on structure, in vitro digestion, and functionality.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "16S", "sample_size": "未提及", "has_fulltext": false, "abstract": "Polysaccharide-flavonoid interactions are integral to the health-promoting effects of plant-derived food. This study investigated the structural characteristics, in vitro digestive stability, prebiotic potential, and in vitro fermentation characteristics of covalent (H70D-C) and non-covalent (H70D-NC) complexes formed between Hovenia dulcis polysaccharides (HDPs70) and dihydromyricetin (DMY), with particular emphasis on the influence of the binding mode. The results showed that H70D-C exhibited a significantly greater DMY-binding capacity (580.41 ± 1.12 mg DMY/g) than H70D-NC (421.06 ± 1.36 mg DMY/g). Infrared spectroscopy confirmed that covalent bonding formed ester bonds, and hydrogen bonds were the main driving force of non-covalent interactions. The covalent complex H70D-C exhibits superior enzyme inhibitory activity, antioxidant activity and thermal stability. The results of in vitro digestion showed that all components could pass through the gastrointestinal tract smoothly, and HDPs70 could effectively protect DMY throughout the digestion process. Moreover, all three polysaccharides promoted the growth of beneficial microbes. DMY incorporation increased the abundance of Bifidobacterium and decreased the level of Escherichia-Shigella, and both binding modes markedly improved the gut microbial community structure. Collectively, these findings support the development of functional foods derived from Hovenia dulcis.", "zh_summary": "本研究探討枳椇多醣（HDPs70）與二氫楊梅素（DMY）透過共價與非共價鍵結合後的結構特性、體外消化穩定性及益生元功能。研究發現，共價鍵結合（H70D-C）在DMY結合能力、抗氧化活性與熱穩定性上皆優於非共價結合。體外消化實驗證實，多醣能有效保護DMY順利通過胃腸道。此外，微生物發酵結果顯示，DMY的添加能顯著促進腸道中「雙歧桿菌」（Bifidobacterium）的生長，並抑制「埃希氏-志賀氏菌」（Escherichia-Shigella）的數量，有效優化腸道菌群結構。此研究證實了枳椇多醣與二氫楊梅素的複合體具有良好的生物活性與腸道調節潛力，為開發相關機能性食品提供了科學依據。", "date": "2026-08-05", "url": "https://pubmed.ncbi.nlm.nih.gov/42637395/"}, {"pmid": "42637484", "title": "Insights into the analysis of microbial communities in fermented foods from the perspective of DNA-based techniques.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "16S, metagenomics", "sample_size": "未提及", "has_fulltext": false, "abstract": "The quality, flavor, and stability of fermented foods depend on the microbial community. However, microbial dynamics are difficult to observe directly, leading to limited control over fermentation. High-throughput sequencing is a revolutionary tool for microbial characterization, among which DNA-based amplicon and metagenomic sequencing are core techniques. Nevertheless, the related data processing workflows in the context of fermented foods have not yet been systematically summarized, hindering the translation of research findings into fermentation practices. This review clarifies the applications of amplicon and metagenomic sequencing in fermented foods. For amplicon sequencing, the impacts of target regions, data preprocessing, and reference databases are addressed. For metagenomic sequencing, sequencing strategies, read-based and binning-based analytical methods, functional annotation, and species-specific databases are discussed. In addition, major strategies for downstream analysis of community data are summarized, including microbial diversity, co-occurrence networks, niche and community assembly, key environmental drivers, and machine learning-based prediction. Amplicon sequencing efficiently reveals microbial succession during fermentation but has limitations in functional annotation. Metagenomic sequencing is notable for functional annotation, enabling the linkage between microbial communities and metabolic potential alongside community characterization. Standardized data preprocessing and specific databases are critical for improving characterization. For community data, integrated analysis allows uncovering the driving factors of microbial succession, thereby helping to regulate fermentation. Notably, the compositional nature of the data must be considered and validated to avoid spurious associations. In summary, the exponential growth of sequencing data will propel the era of precision fermentation.", "zh_summary": "本文為一篇綜述性研究，旨在探討以 DNA 為基礎的高通量定序技術（如 16S 擴增子定序與宏基因組學）在發酵食品微生物群落分析中的應用。研究指出，精準掌握微生物動態對於優化發酵品質與穩定性至關重要。文章詳細整理了從定序策略、數據預處理、參考資料庫選擇到下游統計分析（如多樣性評估、共現網絡、生態棲位分析及機器學習預測）的系統性框架。結論強調，擴增子定序適合追蹤菌群演替，而宏基因組學則在功能註解與代謝潛力預測上具備優勢。透過標準化分析流程並考量數據的組成性質，將能有效連結微生物群落與環境因子，推動發酵產業邁向精準控制的新紀元。", "date": "2026-07-27", "url": "https://pubmed.ncbi.nlm.nih.gov/42637484/"}, {"pmid": "42637478", "title": "Effects of sorghum variety on fermentation microecology and flavor characteristics of sesame-flavor Baijiu.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "16S, metabolomics", "sample_size": "3 種高粱品種（Hongyingzi, Hei'e, G），於 2 輪發酵中進行採樣，共 3 個時間點（0, 15, 50 天）的酒醅（Jiupei）檢體。", "has_fulltext": false, "abstract": "Sorghum, the principal raw material for Baijiu fermentation, plays a key role in shaping fermentation microecology and flavor formation. However, the effects of sorghum varietal differences on sesame-flavor Baijiu fermentation remain insufficiently understood. In this study, three sorghum varieties, Hongyingzi (R), Hei'e (B), and a domestic cultivar (G), were compared over two consecutive fermentation rounds. Fermented grain (Jiupei) samples collected at 0, 15, and 50 days were analyzed for physicochemical properties, enzyme activities, microbial communities, volatile compounds in Jiupei and base liquor, and the taste characteristics of the corresponding base liquor. Despite showing similar overall fermentation trends, the three sorghum varieties differed in acid accumulation, starch utilization, microbial succession, and volatile composition. Fungal communities shifted from early Pichia dominance to multi-genus coexistence, whereas bacterial communities progressively converged toward Lactobacillus dominance. A total of 218 and 258 volatile compounds were identified in Jiupei and 176 and 192 in base liquor from the first and second rounds, respectively. Esters were the dominant differential class, and volatile-marker profiles varied among sorghum varieties and fermentation rounds, with no single variety showing consistent enrichment across all sesame-flavor-related compounds. These results indicate that sorghum variety is an important factor associated with microbial assembly and flavor formation during sesame-flavor Baijiu fermentation, and provide a basis for raw material selection and flavor-oriented process optimization.", "zh_summary": "本研究探討不同高粱品種（Hongyingzi、Hei'e 及 G）對芝麻香型白酒發酵過程中微生態結構及風味特性的影響。透過分析發酵過程中酒醅的理化性質、酵素活性、微生物群落演替及揮發性化合物組成，研究發現儘管三種高粱的總體發酵趨勢相似，但在酸累積、澱粉利用效率、微生物演替及揮發性風味物組成上存在顯著差異。微生物群落演替顯示真菌群落由早期的畢赤酵母（Pichia）主導轉向多屬共存，細菌則趨向以乳桿菌（Lactobacillus）為主的穩定狀態。此外，研究共鑑定出數百種揮發性化合物，其中酯類是導致風味差異的關鍵成分。本研究證實高粱品種是塑造白酒發酵微生物群落與風味形成的重要因子，研究結果為優化白酒生產中的原料選擇與風味導向製程提供了科學依據。", "date": "2026-07-24", "url": "https://pubmed.ncbi.nlm.nih.gov/42637478/"}, {"pmid": "42637476", "title": "A Shenling Baizhu San polysaccharide fraction (SLP-2)-based synbiotic alleviates lactose-induced gut dysfunction via a microbiota-metabolite-barrier axis.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "metagenomics, metabolomics", "sample_size": "該研究包含人體糞便發酵實驗、體外單株菌培養，以及高乳糖飲食（HLD）大鼠模型（具體大鼠數量未明確列出數據）", "has_fulltext": false, "abstract": "Lactose intolerance (LI) is a common digestive disorder, and its management still relies largely on dietary restriction. Because gut microbial fermentation and barrier dysfunction contribute to LI-related symptoms, microbiota-targeted prebiotic or synbiotic strategies may provide complementary approaches. However, the active plant-polysaccharide fractions and their microbial partners remain unclear. This study aimed to identify the bioactive polysaccharide fraction from Shenling Baizhu San and evaluate its pairing with responder bacteria for alleviating high-lactose diet (HLD)-induced intestinal dysfunction. Stepwise ethanol precipitation yielded SLP-2, which was subsequently identified as the principal bioactive fraction through human fecal fermentation, monoculture assays, and an HLD rat model. SLP-2 enriched Eubacterium-associated taxa and supported the growth of Akkermansia muciniphila in monoculture and in vivo. Building on this, a synbiotic combining SLP-2 with A. muciniphila and E. rectale alleviated HLD-induced gut dysfunction; the antibiotic-matched comparison with the probiotics-only group supported an SLP-2-associated contribution. The synbiotic intervention was associated with increased tight junction proteins, MUC2 expression, improved intestinal architecture, and thicker mucus layers. Multi-omics analysis linked co-metabolites, including intestinal 6-MGG and HTy-Ac and systemic DHPV-G, with barrier restoration and an immune profile characterized by increased IL-10 and lower TLR4 expression. These findings suggest that SLP-2-based synbiotic intervention alleviates HLD-induced intestinal dysfunction through microbiota-metabolite-barrier modulation, providing preclinical evidence for future functional-food strategies pending human validation.", "zh_summary": "本研究旨在探討參苓白術散中的活性多醣組分（SLP-2）對於緩解高乳糖飲食（HLD）引發之腸道功能障礙的潛力。研究團隊透過人類糞便發酵與動物模型證實，SLP-2 能有效促進 *Eubacterium* 相關菌群及 *Akkermansia muciniphila* 的生長。實驗結果顯示，由 SLP-2 與上述益生菌組成的合生元（synbiotic）可透過修復腸道屏障功能（如增加緊密連接蛋白與 MUC2 表現）來改善腸道結構。多體學分析進一步指出，該干預措施能調節代謝產物（如 6-MGG、HTy-Ac 及 DHPV-G），並藉由促進抗發炎因子 IL-10 與抑制 TLR4 表現，緩解乳糖耐受不良症狀。此發現為利用中藥多醣結合益生菌的合生元策略提供了科學實證，對未來開發緩解乳糖不耐症的功能性食品具有重要臨床與應用價值。", "date": "2026-07-24", "url": "https://pubmed.ncbi.nlm.nih.gov/42637476/"}, {"pmid": "42637471", "title": "Fucoidan from giant kelp alleviates postmenopausal osteoporosis by regulating the betaine-OPG/RANKL/RANK signaling axis.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "16S, metabolomics", "sample_size": "未提及（原文僅提及使用卵巢切除小鼠模型，未說明具體樣本數量）", "has_fulltext": false, "abstract": "Postmenopausal osteoporosis (PMOP), characterized by excessive bone resorption and impaired bone remodeling, remains a significant global health challenge. This study investigated the protective effects of fucoidan from giant kelp (GKP) against PMOP and its underlying mechanisms in ovariectomized mice. GKP supplementation attenuated bone loss by preserving trabecular microarchitecture, normalizing systemic mineral homeostasis, and suppressing osteoclastogenesis, as evidenced by the downregulation of osteoclast-related genes. 16S rRNA gene sequencing revealed that GKP reshaped the gut microbiota by decreasing the Bacteroidota/Firmicutes ratio and enriching beneficial taxa, which promoted short-chain fatty acid production. Targeted metabolomics revealed that GKP induced profound systemic metabolic reprogramming, particularly amino acid metabolism, and identified betaine as a key systemic metabolite effector upregulated following GKP treatment. In vitro assays demonstrated that betaine suppressed receptor activator of nuclear factor-κB ligand (RANKL)-induced osteoclast differentiation and mitigated inflammation. In vivo validation demonstrated that betaine intervention recapitulated the osteoprotective phenotype observed in GKP-treated mice, which was associated with regulation of the osteoprotegerin/RANKL/RANK signaling axis. These results indicate that GKP exerts anti-osteoporotic effects in association with changes in gut microbiota and systemic metabolism, while betaine-mediated regulation of the OPG/RANKL/RANK signaling may contribute to its osteoprotective activity.", "zh_summary": "本研究探討巨藻褐藻醣膠（GKP）對停經後骨質疏鬆症（PMOP）的保護作用及其機制。研究發現，GKP能有效改善卵巢切除小鼠的骨質流失，保護小梁微結構並抑制破骨細胞生成。機制分析顯示，GKP不僅透過調節腸道菌群結構（降低Bacteroidota/Firmicutes比例）促進短鏈脂肪酸產生，還能引發顯著的代謝重編程，特別是提升了甜菜鹼（betaine）的含量。實驗證明，甜菜鹼可透過調控OPG/RANKL/RANK訊號通路，抑制RANKL誘導的破骨細胞分化與發炎反應。本研究證實GKP具備抗骨質疏鬆潛力，並明確了腸道菌群與關鍵代謝物（甜菜鹼）在其中的中介作用，為PMOP的營養介入治療提供了科學依據。", "date": "2026-07-24", "url": "https://pubmed.ncbi.nlm.nih.gov/42637471/"}, {"pmid": "42637450", "title": "Highland barley polysaccharides promoted lactose intestinal fermentation in vitro: Unveiling the dynamic response of gut microbiota and polysaccharide structure.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "others", "sample_size": "未提及（文中僅提及使用「lactose intolerant patients」的糞便檢體進行體外發酵，未明確標註樣本總數）", "has_fulltext": false, "abstract": "Lactose intolerance affects over 70% of the global population due to the untimely metabolism of lactose in the colon. To accelerate lactose metabolism, we innovatively employed highland barley polysaccharides (HBP) to modulate the colonic fermentation efficiency of lactose using an in vitro fermentation model and fecal samples from lactose intolerant patients. With the addition of HBP, the consumption efficiency of lactose began to increase after 6 h of fermentation. At 48 h, lactose consumption increased by 29%, surpassing the effect of commercial prebiotics. Meanwhile, HBP with lower molecular weight (HBP-L, 8.69 × 104 g/Mol) exhibited more effective impacts than HBP with high molecular weight (HBP-H, 1.22 × 105 g/Mol), which was particularly evident during the 12-48 h of fermentation. More importantly, HBP, particularly HBP-L, substantially enriched Segatella, Bifidobacterium, and Ligilactobacillus in a time-dependent manner and was positively correlated with decreased lactose levels and elevated bacterial lactase activity, resulting in significant conversion of lactose to lactic acid and short-chain fatty acids. During the first 12 h of fermentation, HBP-L underwent more significant degradation than HBP-H. Meanwhile, the xylose residues and Glcp glycosidic bonds in HBP-L were preferentially utilized, while it was glucose residue in HBP-H. Thus, it indicated that HBPs were degraded and altered the composition of the gut microbiota, thereby enhancing the fermentation efficiency of lactose. Our findings provide a theoretical basis for developing targeted prebiotic foods to manage lactose intolerance.", "zh_summary": "本研究旨在探討青稞多醣（HBP）作為益生元，對改善乳糖不耐症患者腸道乳糖發酵效率的潛力。研究利用體外發酵模型發現，添加HBP能顯著提升乳糖代謝效率（48小時內提高29%），且低分子量多醣（HBP-L）的效果優於高分子量多醣（HBP-H）。機制分析顯示，HBP能選擇性促進*Segatella*、*Bifidobacterium*及*Ligilactobacillus*等菌群增殖，提升細菌乳糖酶活性，進而加速乳糖轉化為乳酸及短鏈脂肪酸。此外，研究發現多醣結構（如木糖殘基與糖苷鍵類型）會影響其降解效率。此發現證實了青稞多醣能透過重塑腸道菌群結構，作為緩解乳糖不耐症的靶向性益生元開發策略。", "date": "2026-07-24", "url": "https://pubmed.ncbi.nlm.nih.gov/42637450/"}, {"pmid": "42637441", "title": "Microbial succession drives quality deterioration in refrigerated golden pompano (Trachinotus ovatus): regulatory network of dominant spoilage microbiota on characteristic biomarkers.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "16S, metabolomics", "sample_size": "未提及", "has_fulltext": false, "abstract": "Elucidating the quality deterioration mechanisms of refrigerated golden pompano (Trachinotus ovatus), this study integrated 16S rRNA gene sequencing and untargeted metabolomics to systematically dissect how microbial ecological succession drives metabolic changes. As critical spoilage indicators, total volatile basic nitrogen (TVB-N) and thiobarbituric acid reactive substances (TBARS) continuously increased during storage, indicating significant deterioration by day 6. Microbial community succession analysis revealed that Psychrobacter, Shewanella, and Pseudomonas gradually became the dominant microbiota in the late storage stage. Metabolite enrichment analysis further demonstrated that this shift redirected the metabolic focus from early-stage nucleotide degradation to late-stage protein hydrolysis and amino acid metabolism. Moreover, multivariate statistical analysis identified 50 potential spoilage biomarkers, among which biogenic amines (histamine, tyramine, and phenylethylamine) were recognized as key indicators reflecting spoilage progression. Correlation network analysis revealed positive correlations between Pseudomonas and Shewanella abundances and the accumulation of these biogenic amines. This suggests that these two genera act as the core functional microbiota, driving spoilage metabolite generation and subsequent quality deterioration. Pathway analysis of potential spoilage biomarker generation indicates that amino acid and nucleotide metabolism constitute the core spoilage pathways, with lipid oxidation serving as a complementary mechanism. Overall, this study elucidates the spoilage mechanisms of refrigerated golden pompano, providing chemical targets for early biomarker detection and targeted antibacterial strategies.", "zh_summary": "本研究旨在探討冷藏金鯧魚（*Trachinotus ovatus*）品質劣化的微生物演替機制。透過 16S rRNA 定序與非標靶代謝體學分析，研究發現隨著儲藏時間延長，*Psychrobacter*、*Shewanella* 及 *Pseudomonas* 逐漸成為優勢菌群，促使代謝途徑由早期的核苷酸降解轉向後期的蛋白質水解與胺基酸代謝。研究成功鑑定出 50 種潛在腐敗生物標記物，其中生物胺（如組織胺、酪胺及苯乙胺）被確認為品質劣化的關鍵指標。關聯網絡分析顯示，*Pseudomonas* 與 *Shewanella* 的豐度與這些生物胺的累積呈正相關，證實其為驅動腐敗代謝的核心功能微生物。本研究揭示了冷藏魚類腐敗的分子機制，為開發魚類鮮度監測技術及針對性抗菌策略提供了重要的科學依據與標記物參考。", "date": "2026-07-22", "url": "https://pubmed.ncbi.nlm.nih.gov/42637441/"}, {"pmid": "42637430", "title": "Regional differentiation of microbial communities and metabolites in Yunnan dry-cured beef: insights from high-throughput sequencing and untargeted metabolomics.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "16S, metabolomics", "sample_size": "未提及（摘要中僅提及來自三個地區的樣本，未明確列出具體的檢體總數或樣本數）", "has_fulltext": false, "abstract": "To reveal the effects of regional processing on quality, microbial communities and metabolites of traditional Yunnan dry-cured beef, samples from Xundian (XD), Yuxi (YX) and Honghe (HH) were analyzed. High-throughput sequencing and UHPLC-Q-Exactive HF/MS untargeted metabolomics were applied. Sensory scores and physicochemical Properties differed significantly (p < 0.05). Bacillota and Staphylococcus dominated bacterial communities. The observed differences in microbial communities and metabolites among regions are shaped by the combined effects of geographical environment and processing conditions. Ascomycota was the main fungal phylum. Debaryomyces dominated XD and HH samples. YX samples had a unique fungal profile dominated by Rhodotorula and Cladosporium. A total of 1320 metabolites were identified. 196 differential metabolites were screened. Key pathways included glycerophospholipid metabolism, pyrimidine metabolism and arachidonic acid metabolism. Correlation analysis indicated that Staphylococcus and Lactococcus were positively associated with amino acid derivatives, while Latilactobacillus and Debaryomyces correlated with organic acids and glycerophospholipids. These findings revealed the potential microbial-metabolic association underlying regional quality differences. They provide support for quality control and traceability of dry-cured beef.", "zh_summary": "本研究旨在探討地理區域與加工工藝對雲南乾醃牛肉品質的影響。研究團隊針對來自尋甸 (XD)、玉溪 (YX) 與紅河 (HH) 三地的牛肉樣品，整合運用高通量定序（16S rRNA）與非標靶代謝體學分析技術。研究發現，不同地區的微生物群落結構（如細菌中厚壁菌門與葡萄球菌屬的優勢地位，以及真菌分布的區域性差異）與代謝特徵存在顯著差異，且此差異受地理環境與加工條件共同驅動。研究共鑑定出 1,320 種代謝物，並篩選出 196 種差異代謝物，主要涉及甘油磷脂、嘧啶及花生四烯酸等代謝途徑。相關性分析進一步證實了微生物群落（如葡萄球菌屬、乳酸桿菌屬、德巴利酵母屬）與特定代謝產物間的交互作用。本研究成功揭示了微生物代謝網絡與乾醃牛肉區域性品質特徵的關聯，為傳統肉製品的品質控管與產地溯源提供了重要的科學理論依據。", "date": "2026-07-22", "url": "https://pubmed.ncbi.nlm.nih.gov/42637430/"}, {"pmid": "42637417", "title": "Allergic responses, gut microbiome and serum metabolism of mice: Effects of epigallocatechin gallate combined with sodium pyrophosphate modified parvalbumin.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "16S, metabolomics", "sample_size": "未提及", "has_fulltext": false, "abstract": "Epigallocatechin gallate (EGCG) combined with sodium pyrophosphate (SP) modified parvalbumin (PV) was proposed to sensitize mice, and investigated whether allergic responses changes were associated with gut microbiome and serum metabolism of mice. EGCG combined with SP modified PV has structural changes, and alleviated jejunal damage in mice, while decreased specific serum IgG, IgG1 and IgE levels and may rebalanced Th1/Th2 immune responses. PV-induced allergic responses disrupted gut microbiota and reduced short-chain fatty acids (SCFAs) levels. In contrast, the modified PV could alter the relative abundance of allergic responses-related gut microbiota, such as g__unclassified_f__Lachnospiraceae, g__norank_o__Clostridia_UCG-014 and g__Alistipes, alongside elevated SCFAs levels. Additionally, the modified PV could affect multiple metabolic pathways in serum, and exert a positive impact on phosphatidylethanolamine and phosphatidylcholine levels in glycerophospholipid metabolism. Therefore, the reduction in the allergic responses of PV modified by EGCG and SP were associated with changes in gut microbiota and modulation of glycerophospholipid metabolisms. These correlational observations provided preliminary associative evidence supporting the potential utility of combined EGCG-SP modification as a hypoallergenic processing approach for fish parvalbumin mitigation.", "zh_summary": "本研究旨在探討經表沒食子兒茶素沒食子酸酯（EGCG）與焦磷酸鈉（SP）修飾後的魚類小清蛋白（PV），對改善過敏反應的機制及其與腸道菌群、血清代謝的關聯。研究發現，修飾後的PV能有效減輕小鼠空腸損傷，降低特異性血清抗體（IgG, IgG1, IgE）水平，並調節Th1/Th2免疫平衡。在腸道菌相方面，修飾後的PV可改善過敏引起的菌群失調，增加短鏈脂肪酸（SCFAs）水平，並顯著改變如*Lachnospiraceae*及*Alistipes*等特定菌屬的豐度。同時，該修飾亦能調節血清代謝物，特別是促進甘油磷脂代謝途徑中磷脂醯乙醇胺與磷脂醯膽鹼的含量。研究結果證實，EGCG與SP修飾能有效降低PV的致敏性，其機制與重塑腸道微生物群落及優化血清代謝網絡密切相關，為研發低敏食品加工技術提供了重要的科學依據。", "date": "2026-07-19", "url": "https://pubmed.ncbi.nlm.nih.gov/42637417/"}, {"pmid": "42637412", "title": "Probiotic consortium supplementation enhances sleep regulation via gut microbiota-derived short-chain fatty acid-mediated metabolic modulation.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "small genome, metabolomics, 16S", "sample_size": "未提及", "has_fulltext": false, "abstract": "Sleep regulation is increasingly recognized as a multifactorial process orchestrated by gut microbial metabolism and gut-brain axis signaling. Whereas pharmacological agents such as diazepam induce transient hypnotic effects through direct receptor modulation, probiotic interventions may elicit broader and more adaptive physiological benefits via host-microbiota metabolic crosstalk. Here, we investigated Limosilactobacillus fermentum SLAM_LAF05 (SLAM_LAF05) and Bifidobacterium longum SLAM_BIL02 (SLAM_BIL02), two rationally selected strains with complementary metabolic capacities, to delineate their synergistic roles in sleep regulation and systemic recovery. Genomic and metabolic profiling revealed that SLAM_LAF05 harbors the arginine deiminase pathway, while SLAM_BIL02 encodes genes for glutamine and glutamate biosynthesis; together, these routes converge on the glutamine/glutamate axis, potentially supporting γ-aminobutyric acid (GABA) synthesis and cellular energy metabolism. In the mouse model, combined LF + BL supplementation prolonged sleep, stabilized sleep-wake architecture, enhanced motor performance, and reduced stress-associated biomarkers. Molecular and immunological analyses demonstrated upregulation of GABAergic genes, a shift toward inhibitory serotonergic signaling, reinforcement of intestinal barrier integrity, and attenuation of inflammatory responses. Microbiome profiling identified Dubosiella as a central taxon positively associated with short-chain fatty acid (SCFA) production, suggesting an association between microbial metabolic activity and host neurotransmitter balance. By integrating genomic, molecular, metabolic, and microbial evidence, this study establishes a systems-level framework illustrating how complementary probiotic metabolisms converge to modulate gut-brain communication, promote sleep stability, and support physiological resilience. These findings provide a conceptual and methodological foundation for investigating future multi-omics approaches to unravel the causal mechanisms underlying probiotic-mediated sleep regulation support the development of scientifically validated probiotic-based functional foods for promoting sleep health.", "zh_summary": "本研究探討由 *Limosilactobacillus fermentum* (SLAM_LAF05) 與 *Bifidobacterium longum* (SLAM_BIL02) 組成的益生菌配方，透過腸腦軸線對睡眠調節的影響。研究發現這兩種菌株具有互補的代謝能力，能共同促進麩醯胺酸/麩胺酸代謝軸，進而支持 GABA 合成與能量代謝。在小鼠模型實驗中，該益生菌配方不僅延長了睡眠時間並優化睡眠結構，還能增強腸道屏障功能並降低發炎反應。微生物組分析顯示，益生菌補充促進了產短鏈脂肪酸（SCFA）菌種（如 *Dubosiella*）的豐度，從而調節神經傳導物質平衡。此研究結合基因體、代謝與微生物組分析，揭示了益生菌如何透過腸道代謝產物重塑腸腦通訊，為開發改善睡眠健康的益生菌功能性食品提供了科學基礎。", "date": "2026-07-18", "url": "https://pubmed.ncbi.nlm.nih.gov/42637412/"}, {"pmid": "42637407", "title": "Integrated metagenomics and metabolomics reveal geographical signatures in the microbiome and metabolome of Jiaoke from Inner Mongolia, China.", "journal": "Food research international (Ottawa, Ont.)", "impact_factor": "N/A", "tech_types": "metagenomics, metabolomics", "sample_size": "未提及（摘要僅提及來自三個不同生產區域的樣品，但未說明具體採樣數量）", "has_fulltext": false, "abstract": "Jiaoke is a traditional fermented dairy product from Inner Mongolia, China, and its characteristic flavor and quality attributes are shaped by region-specific microbial communities. In this study, shotgun metagenomic sequencing combined with untargeted metabolomics was used to systematically characterize Jiaoke samples collected from three distinct ecological production regions: Hulun Buir (HLB), Xilingol (XLG), and Bayan Nur (BYN). The results demonstrated pronounced regional specificity in both microbial composition and metabolite profiles across the three regions. BYN samples were dominated by Lactococcus lactis and Bifidobacterium spp. with enrichment of lipid-derived metabolites. HLB samples were characterized by Lactococcus raffinolactis and psychrotolerant bacteria, together with elevated levels of sphingolipids. In contrast, XLG samples were dominated by Streptococcus macedonicus and exhibited high abundances of amino acids and dipeptides. Correlation analysis indicated that Lactococcus raffinolactis and Streptococcus macedonicus may contribute to Jiaoke flavor formation by promoting milk protein hydrolysis and dipeptide accumulation. These findings provide a basis for understanding regional flavor formation, developing tailored starter cultures, and establishing geographically indicated products in the future.", "zh_summary": "本研究旨在探討內蒙古傳統發酵乳製品「嚼克」（Jiaoke）的區域性風味與品質特徵。研究結合總體基因體學（metagenomics）與非標靶代謝體學（metabolomics），針對呼倫貝爾（HLB）、錫林郭勒（XLG）及巴彥淖爾（BYN）三個產區的樣品進行系統性分析。結果顯示，不同產區的微生物群落結構與代謝物組成存在顯著的地理特異性：BYN 地區富含乳酸乳球菌與雙歧桿菌，代謝物以脂質為主；HLB 地區以棉子糖乳球菌與耐冷菌為優勢菌群，富含鞘脂；而 XLG 地區則以馬其頓鏈球菌為主，展現高含量的胺基酸與二肽。相關性分析進一步指出，特定乳酸菌透過促進乳蛋白水解，對嚼克的獨特風味形成具有關鍵貢獻。本研究不僅揭示了傳統發酵乳的微生物地理特徵，亦為開發區域性發酵菌種及建立地理標示產品提供了重要的科學依據。", "date": "2026-07-15", "url": "https://pubmed.ncbi.nlm.nih.gov/42637407/"}];
+        
+        let filteredArticles = [...rawArticlesData];
+        let currentPage = 1;
+        const itemsPerPage = 15;
+
+        // 初始化
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("total-db-count").textContent = rawArticlesData.length;
+            
+            // 事件監聽
+            document.getElementById("filter-start-date").addEventListener("change", applyFilters);
+            document.getElementById("filter-end-date").addEventListener("change", applyFilters);
+            document.getElementById("filter-tech").addEventListener("change", applyFilters);
+            document.getElementById("filter-search").addEventListener("input", applyFilters);
+
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const startDate = document.getElementById("filter-start-date").value;
+            const endDate = document.getElementById("filter-end-date").value;
+            const selectedTech = document.getElementById("filter-tech").value.toLowerCase();
+            const searchText = document.getElementById("filter-search").value.toLowerCase().trim();
+
+            filteredArticles = rawArticlesData.filter(art => {
+                // 日期篩選
+                if (startDate && art.date < startDate) return false;
+                if (endDate && art.date > endDate) return false;
+
+                // 技術類型篩選 (包含於字串內)
+                if (selectedTech) {
+                    const techStr = String(art.tech_types).toLowerCase();
+                    if (!techStr.includes(selectedTech)) return false;
+                }
+
+                // 關鍵字搜尋
+                if (searchText) {
+                    const fullContent = (art.title + art.journal + art.zh_summary + art.abstract).toLowerCase();
+                    if (!fullContent.includes(searchText)) return false;
+                }
+
+                return true;
+            });
+
+            // 預設由最新日期開始排序 (最新在最前)
+            filteredArticles.sort((a, b) => (b.date > a.date ? 1 : -1));
+
+            currentPage = 1;
+            renderArticles();
+        }
+
+        function renderArticles() {
+            const container = document.getElementById("articles-list");
+            container.innerHTML = "";
+
+            if (filteredArticles.length === 0) {
+                container.innerHTML = `<div class="card"><p style="text-align:center; color:#888;">查無符合條件的論文。</p></div>`;
+                updatePaginationControls(0);
+                return;
+            }
+
+            const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const pageData = filteredArticles.slice(startIndex, startIndex + itemsPerPage);
+
+            pageData.forEach(art => {
+                // 處理多技術標籤顯示
+                const techs = String(art.tech_types).split(",").map(t => t.trim());
+                const techBadges = techs.map(t => `<span class="badge-tech">🔬 ${t}</span>`).join(" ");
+                const fullTextBadge = art.has_fulltext ? `<span class="badge-fulltext">📄 全文分析</span>` : ``;
+
+                const cardHtml = `
+                    <div class="card">
+                        <h2><a href="${art.url}" target="_blank">${art.title}</a></h2>
+                        <div class="meta">
+                            ${techBadges}
+                            <span class="badge-sample">📊 樣本: ${art.sample_size}</span>
+                            ${fullTextBadge}
+                            <span class="badge-journal">📖 ${art.journal}</span>
+                            <span class="badge-if">IF: ${art.impact_factor}</span>
+                            <span>📅 日期: ${art.date}</span>
+                            <span>PMID: ${art.pmid}</span>
+                        </div>
+                        <div class="ai-summary">
+                            <div class="ai-summary-title">🤖 AI 核心解述</div>
+                            <div class="ai-summary-content">${art.zh_summary}</div>
+                        </div>
+                        <details>
+                            <summary>查看英文原文摘要 (Abstract)</summary>
+                            <div class="abstract-en" style="margin-top:8px;">${art.abstract}</div>
+                        </details>
+                    </div>
+                `;
+                container.insertAdjacentHTML("beforeend", cardHtml);
+            });
+
+            updatePaginationControls(totalPages);
+        }
+
+        function updatePaginationControls(totalPages) {
+            document.getElementById("page-info").textContent = `第 ${currentPage} 頁 / 共 ${totalPages || 1} 頁 (篩選出 ${filteredArticles.length} 筆)`;
+            document.getElementById("btn-prev").disabled = (currentPage <= 1);
+            document.getElementById("btn-next").disabled = (currentPage >= totalPages || totalPages === 0);
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            renderArticles();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetFilters() {
+            document.getElementById("filter-start-date").value = "";
+            document.getElementById("filter-end-date").value = "";
+            document.getElementById("filter-tech").value = "";
+            document.getElementById("filter-search").value = "";
+            applyFilters();
+        }
+    </script>
 </body>
 </html>
