@@ -41,29 +41,32 @@ FALLBACK_MODEL = "gemini-3.1-flash-lite"
 
 
 def summarize_with_llm(title, abstract, retries=3, delay=5):
-    """使用 LLM 將論文標題與摘要總結為繁體中文解述，並自動判斷技術類型"""
+    """使用 LLM 將論文標題與摘要總結為繁體中文解述，並自動判斷多種技術類型"""
     if not GEMINI_API_KEY:
         print("❌ 錯誤: 未找到 GEMINI_API_KEY 環境變數！")
-        return "others", "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
+        return ["others"], "⚠️ 未設定 GEMINI_API_KEY，無法產生中文摘要。"
 
     if not abstract or abstract == "無提供摘要。":
-        return "others", "這篇論文未提供原文摘要，無法進行摘要轉譯。"
+        return ["others"], "這篇論文未提供原文摘要，無法進行摘要轉譯。"
 
-    # 🔑 在 Prompt 中加入技術類型判斷要求
+    # 🔑 在 Prompt 中增加 metabolomics 與多技術複選規則
     prompt = f"""
 你是一位生物醫學與微生物學領域的專家。請根據以下論文標題與摘要，完成兩項任務：
 
-任務一：判斷該研究主要使用的技術類型，必須且只能歸類為以下 5 個選項之一：
+任務一：判斷該研究主要使用的技術類型。請從以下 6 個候選標籤中選擇：
 1. 16S (包含 16S rRNA, amplicon sequencing 等擴增子定序)
-2. metagenomics (總體基因體學 / 宏基因組學 /  shotgun metagenomics)
+2. metagenomics (總體基因體學 / 宏基因組學 / shotgun metagenomics)
 3. metatranscriptomics (總體轉錄體學 / 宏轉錄組學)
-4. small genome (小型基因體 / 菌株全基因體完成圖 / viral/bacterial genome assembly)
-5. others (若不屬於上述四者，或無法明確判斷)
+4. metabolomics (代謝組學 / 代謝體學 / LC-MS, GC-MS 等代謝物分析)
+5. small genome (小型基因體 / 菌株全基因體完成圖 / viral/bacterial genome assembly)
+6. others (若不屬於上述五者，或無法明確判斷)
+
+⚠️ 特別注意：若論文中同時使用了兩種以上的技術（例如 16S + metabolomics），請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
 
 任務二：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現或意義）。
 
 請嚴格按照以下格式輸出（不要增加額外開頭文字）：
-[技術類型]: 選項名稱 (僅填寫 16S / metagenomics / metatranscriptomics / small genome / others 之一)
+[技術類型]: 技術標籤1, 技術標籤2
 [中文摘要]: 摘要內文...
 
 論文標題：{title}
@@ -97,26 +100,26 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
                 else:
                     raise e
 
-    # 解析 LLM 傳回的字串，拆解出「技術類型」與「摘要內文」
+    # 🔑 解析 LLM 傳回的字串，可拆解出多個技術標籤 (List of strings)
     def _parse_llm_output(output_text):
-        tech_type = "others"
+        tech_types = ["others"]
         zh_summary = output_text
 
         # 匹配 [技術類型]: xxx
-        tech_match = re.search(
-            r"\[技術類型\]:\s*(16S|metagenomics|metatranscriptomics|small genome|others)",
-            output_text,
-            re.IGNORECASE,
-        )
+        tech_match = re.search(r"\[技術類型\]:\s*(.*)", output_text, re.IGNORECASE)
         if tech_match:
-            tech_type = tech_match.group(1).strip()
+            raw_tech_line = tech_match.group(1).split("\n")[0].strip()
+            # 以逗號切割並清洗空格
+            parsed_techs = [t.strip() for t in re.split(r"[,;，]", raw_tech_line) if t.strip()]
+            if parsed_techs:
+                tech_types = parsed_techs
 
         # 匹配 [中文摘要]: xxx
         summary_match = re.search(r"\[中文摘要\]:\s*(.*)", output_text, re.DOTALL)
         if summary_match:
             zh_summary = summary_match.group(1).strip()
 
-        return tech_type, zh_summary
+        return tech_types, zh_summary
 
     raw_output = None
     try:
@@ -131,7 +134,7 @@ def summarize_with_llm(title, abstract, retries=3, delay=5):
             raw_output = _call_api(FALLBACK_MODEL)
         except Exception as e:
             print(f"❌ 備用模型 [{FALLBACK_MODEL}] 亦呼叫失敗: {e}")
-            return "others", "中文摘要生成失敗 (API 配額超限)，請參考英文原文。"
+            return ["others"], "中文摘要生成失敗 (API 配額超限)，請參考英文原文。"
 
     return _parse_llm_output(raw_output)
 
@@ -318,7 +321,7 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
         pub_date_str = parse_pub_date_from_article(article)
 
         print(f"[{idx}/{len(id_list)}] 正在為 PMID: {pmid} 分析技術類型與摘要...")
-        tech_type, zh_summary = summarize_with_llm(title, abstract)
+        tech_types, zh_summary = summarize_with_llm(title, abstract)
 
         articles.append(
             {
@@ -326,7 +329,7 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=10):
                 "title": title,
                 "journal": journal_title,
                 "impact_factor": impact_factor,
-                "tech_type": tech_type,  # 🔑 新增技術類型欄位
+                "tech_types": tech_types,  # 🔑 傳入 List (包含多個技術標籤)
                 "abstract": abstract,
                 "zh_summary": zh_summary,
                 "date": pub_date_str,
@@ -355,11 +358,11 @@ HTML_TEMPLATE = """
         .card h2 { margin-top: 0; font-size: 18px; }
         .card h2 a { color: #0056b3; text-decoration: none; }
         .card h2 a:hover { text-decoration: underline; }
-        .meta { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .meta { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .badge-journal { background-color: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         
-        /* 🔑 新增技術類型標籤樣式 */
+        /* 🔑 多標籤技術徽章樣式 */
         .badge-tech { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         
         .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
@@ -388,8 +391,10 @@ HTML_TEMPLATE = """
         <div class="card">
             <h2><a href="{{ article.url }}" target="_blank">{{ article.title }}</a></h2>
             <div class="meta">
-                <!-- 🔑 顯示技術類型標籤 -->
-                <span class="badge-tech">🔬 {{ article.tech_type }}</span>
+                <!-- 🔑 遍歷顯示多個技術標籤徽章 -->
+                {% for tech in article.tech_types %}
+                <span class="badge-tech">🔬 {{ tech }}</span>
+                {% endfor %}
                 <span class="badge-journal">📖 {{ article.journal }}</span>
                 <span class="badge-if">IF: {{ article.impact_factor }}</span>
                 <span>📅 發表日期: {{ article.date }}</span>
