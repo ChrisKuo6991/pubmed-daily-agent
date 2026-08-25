@@ -264,8 +264,15 @@ def sync_database_to_excel(new_articles, db_path):
         combined_df = new_df
 
     combined_df.sort_values(by="date", ascending=False, inplace=True)
-    combined_df.to_excel(db_path, index=False)
-    print(f"✅ Excel 論文資料庫已更新！總儲存筆數：{len(combined_df)}")
+
+    try:
+        combined_df.to_excel(db_path, index=False, engine="openpyxl")
+        print(f"✅ 成功寫入！總筆數：{len(combined_df)}")
+    except PermissionError:
+        print(f"❌ 寫入失敗：請先關閉正在開啟的 {db_path} 檔案！")
+    
+    #combined_df.to_excel(db_path, index=False)
+    #print(f"✅ Excel 論文資料庫已更新！總儲存筆數：{len(combined_df)}")
     return combined_df
 
 
