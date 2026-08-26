@@ -61,6 +61,6 @@ jobs:
             git push origin HEAD:${{ github.ref }}
             echo "✅ 已成功將最新的 papers_database.xlsx 推送至 GitHub！"
           else
-            echo "ℹ️ Excel 檔案無變化，跳過 Commit。"  
+            # echo "ℹ️ Excel 檔案無變化，跳過 Commit。"  
           fi
           
