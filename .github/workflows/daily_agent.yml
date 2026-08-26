@@ -54,9 +54,3 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto update pubmed report [skip ci]" && git push)
-
-          if git status --porcelain | grep -q "papers_database.xlsx"; then
-            git add papers_database.xlsx
-            git commit -m "chore: auto-update papers_database.xlsx [skip ci]"
-            git push origin HEAD:${{ github.ref }}
-          fi
