@@ -14,7 +14,7 @@ import requests
 SEARCH_KEYWORDS = ["Microbiome", "metagenome", "metagenomic"]
 SEARCH_TERM = " OR ".join(SEARCH_KEYWORDS)
 
-MAX_RESULTS = 15
+MAX_RESULTS = 20
 EXCEL_IF_PATH = "JCR-ImapctFactor-2025.xlsx"
 DB_EXCEL_PATH = "papers_database.xlsx"
 
