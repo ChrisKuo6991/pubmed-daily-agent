@@ -2,8 +2,8 @@ name: Run PubMed Daily Agent
 
 on:
   schedule:
-    # 每天 UTC 時間 00:00 執行（等於台灣時間早上 08:00）
-    - cron: '0 0 * * *'
+    # 調整為每天 UTC 00:15 執行（台灣時間 08:15），可大幅減少佇列排隊時間
+    - cron: '15 0 * * *'
   # 允許在 GitHub 介面上手動按下按鈕觸發執行
   workflow_dispatch:
 
