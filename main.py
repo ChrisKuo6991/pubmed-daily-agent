@@ -1,7 +1,8 @@
 import datetime
+import json
 import os
-import sys
 import re
+import sys
 import time
 import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
@@ -54,17 +55,17 @@ def fetch_open_access_fulltext(pmid):
     return None
 
 
-def summarize_with_llm(title, abstract, fulltext=None, retries=3, delay=5):
-    """使用 LLM 解析技術類型、樣本數與中文摘要 (優先使用 Full Text)"""
+def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3, delay=5):
+    """使用 LLM 解析技術類型、樣本數、通訊作者國家與中文摘要 (優先使用 Full Text)"""
     if not GEMINI_API_KEY:
-        return ["others"], "未提及", "⚠️ 未設定 GEMINI_API_KEY"
+        return ["others"], "未提及", "未知國家", "⚠️ 未設定 GEMINI_API_KEY"
 
     has_fulltext = bool(fulltext)
     content_type_str = "內文全文" if has_fulltext else "標題與摘要"
     content_body = fulltext if has_fulltext else f"論文標題：{title}\n原文摘要：{abstract}"
 
     prompt = f"""
-你是一位生物醫學與微生物學領域的專家。請根據提供的論文{content_type_str}完成三項任務：
+你是一位生物醫學與微生物學領域的專家。請根據提供的論文{content_type_str}與作者機構資訊，完成四項任務：
 
 任務一：判斷該研究主要使用的技術類型。請從以下 6 個標籤中選擇：
 1. 16S (包含 16S rRNA, amplicon sequencing 等擴增子定序)
@@ -78,13 +79,17 @@ def summarize_with_llm(title, abstract, fulltext=None, retries=3, delay=5):
 任務二：擷取該研究的「研究樣本數量」（例如：n=50、120 位受試者、45 個糞便檢體、12 個小鼠模型、1,200 個基因體等）。
 ⚠️ 請特別關注文章中的 Materials and Methods 或 Results 區塊。若文章完全未提及樣本數，請填寫「未提及」。
 
-任務三：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現與臨床/科學意義）。
+任務三：請根據提供的作者機構資訊（Affiliation），判斷通訊作者（或主要研究團隊）來自的「國家/地區名稱」（特別關注是否包含 Taiwan、ROC、Taiwan R.O.C. 等，若為台灣請務必精準輸出 Taiwan；其餘請輸出英文國家名稱如 USA, China, Germany, Japan 等）。若完全無法判斷，請填寫「未知國家」。
+
+任務四：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現與臨床/科學意義）。
 
 請嚴格按照以下格式輸出：
 [技術類型]: 技術標籤1, 技術標籤2
 [樣本數量]: 樣本數量描述
+[研究國家]: 國家名稱
 [中文摘要]: 摘要內文...
 
+作者機構資訊：{affiliation}
 論文內容：
 {content_body}
 """
@@ -110,6 +115,7 @@ def summarize_with_llm(title, abstract, fulltext=None, retries=3, delay=5):
     def _parse_llm_output(output_text):
         tech_types = ["others"]
         sample_size = "未提及"
+        country = "未知國家"
         zh_summary = output_text
 
         tech_match = re.search(r"\[技術類型\]:\s*(.*)", output_text, re.IGNORECASE)
@@ -123,11 +129,15 @@ def summarize_with_llm(title, abstract, fulltext=None, retries=3, delay=5):
         if sample_match:
             sample_size = sample_match.group(1).split("\n")[0].strip()
 
+        country_match = re.search(r"\[研究國家\]:\s*(.*)", output_text, re.IGNORECASE)
+        if country_match:
+            country = country_match.group(1).split("\n")[0].strip()
+
         summary_match = re.search(r"\[中文摘要\]:\s*(.*)", output_text, re.DOTALL)
         if summary_match:
             zh_summary = summary_match.group(1).strip()
 
-        return tech_types, sample_size, zh_summary
+        return tech_types, sample_size, country, zh_summary
 
     raw_output = None
     try:
@@ -136,7 +146,7 @@ def summarize_with_llm(title, abstract, fulltext=None, retries=3, delay=5):
         try:
             raw_output = _call_api(FALLBACK_MODEL)
         except Exception:
-            return ["others"], "未提及", "AI 分析失敗，請參考英文原文。"
+            return ["others"], "未提及", "未知國家", "AI 分析失敗，請參考英文原文。"
 
     return _parse_llm_output(raw_output)
 
@@ -222,6 +232,14 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
         journal_title = article.findtext(".//Journal/Title") or "未知期刊"
         impact_factor = if_map.get(journal_title.strip().lower(), "N/A")
 
+        # 擷取機構資訊供國家判斷
+        affiliations = []
+        for aff in article.findall(".//AuthorList/Author/AffiliationInfo/Affiliation"):
+            aff_text = get_full_text(aff)
+            if aff_text:
+                affiliations.append(aff_text)
+        affiliation_str = " | ".join(affiliations[:3])
+
         abstract_texts = article.findall(".//AbstractText")
         abstract = " ".join([get_full_text(a) for a in abstract_texts]) if abstract_texts else "無提供摘要。"
         pub_date_str = parse_pub_date_from_article(article)
@@ -231,7 +249,7 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
         has_fulltext_flag = " (全文)" if fulltext else " (摘要)"
 
         print(f"[{idx}/{len(id_list)}] PMID: {pmid}{has_fulltext_flag} 分析中...")
-        tech_types, sample_size, zh_summary = summarize_with_llm(title, abstract, fulltext)
+        tech_types, sample_size, country, zh_summary = summarize_with_llm(title, abstract, affiliation_str, fulltext)
 
         articles.append({
             "pmid": pmid,
@@ -240,6 +258,7 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
             "impact_factor": impact_factor,
             "tech_types": tech_types,
             "sample_size": sample_size,
+            "country": country,
             "has_fulltext": bool(fulltext),
             "abstract": abstract,
             "zh_summary": zh_summary,
@@ -256,8 +275,11 @@ def sync_database_to_excel(new_articles, db_path):
     print(f"📦 收到待存入論文數量: {len(new_articles)} 筆")
 
     if not new_articles:
+        if os.path.exists(db_path):
+            print("ℹ️ 無新論文，直接載入既有資料庫...")
+            return pd.read_excel(db_path)
+        
         print("❌ 警告：傳入的論文陣列為空 (0 筆)，程式將強制建立一份測試 Excel 以確保檔案生成！")
-        # 若無資料，強制寫入測試欄位，避免使用者找不到檔案
         dummy_df = pd.DataFrame([{
             "pmid": "00000000",
             "title": "無新論文（系統初始化）",
@@ -265,6 +287,7 @@ def sync_database_to_excel(new_articles, db_path):
             "impact_factor": "N/A",
             "tech_types": "none",
             "sample_size": "未提及",
+            "country": "Taiwan",
             "has_fulltext": False,
             "abstract": "無資料",
             "zh_summary": "今日未擷取到新論文",
@@ -330,11 +353,18 @@ HTML_TEMPLATE = """
         .container { max-width: 1000px; margin: 0 auto; }
         header { background: #0056b3; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         header h1 { margin: 0; font-size: 24px; }
+        .stats-bar { font-size: 14px; margin-top: 8px; opacity: 0.95; }
+        .highlight-count { color: #ffeb3b; font-weight: bold; }
         
         /* 篩選與搜尋面板 */
         .filter-panel { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
         .filter-group { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
-        .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .filter-group input[type="text"], .filter-group input[type="date"], .filter-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        
+        /* Taiwan 勾選框特別樣式 */
+        .taiwan-checkbox-label { background: #e7f3ff; color: #0056b3; padding: 6px 12px; border-radius: 20px; border: 1px solid #b6d4fe; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none; }
+        .taiwan-checkbox-label input { width: 16px; height: 16px; cursor: pointer; }
+
         .btn-reset { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .btn-reset:hover { background: #5a6268; }
 
@@ -348,6 +378,7 @@ HTML_TEMPLATE = """
         .badge-if { background-color: #d1e7dd; color: #0f5132; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         .badge-tech { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         .badge-sample { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        .badge-country { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
         .badge-fulltext { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
 
         .ai-summary { background-color: #f0f7ff; border-left: 4px solid #0056b3; padding: 12px 15px; border-radius: 0 6px 6px 0; margin-bottom: 15px; }
@@ -368,11 +399,19 @@ HTML_TEMPLATE = """
     <div class="container">
         <header>
             <h1>PubMed 每日最新論文 AI 快訊與檢索庫 by 克里斯</h1>
-            <p>資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 | 最後更新：{{ updated_at }}</p>
+            <p class="stats-bar">
+                資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 ｜ 
+                🇹🇼 台灣團隊文章：<span class="highlight-count" id="taiwan-db-count">0</span> 筆 ｜ 
+                最後更新：{{ updated_at }}
+            </p>
         </header>
 
         <!-- 篩選控制列 -->
         <div class="filter-panel">
+            <label class="taiwan-checkbox-label">
+                <input type="checkbox" id="filter-taiwan-only"> 🇹🇼 只顯示 Taiwan 論文
+            </label>
+
             <div class="filter-group">
                 <label>📅 開始日期:</label>
                 <input type="date" id="filter-start-date">
@@ -423,7 +462,15 @@ HTML_TEMPLATE = """
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("total-db-count").textContent = rawArticlesData.length;
             
+            // 計算目前收錄多少屬 Taiwan 的文章
+            const taiwanCount = rawArticlesData.filter(art => {
+                const countryStr = String(art.country || "").toLowerCase();
+                return countryStr.includes("taiwan");
+            }).length;
+            document.getElementById("taiwan-db-count").textContent = taiwanCount;
+
             // 事件監聽
+            document.getElementById("filter-taiwan-only").addEventListener("change", applyFilters);
             document.getElementById("filter-start-date").addEventListener("change", applyFilters);
             document.getElementById("filter-end-date").addEventListener("change", applyFilters);
             document.getElementById("filter-tech").addEventListener("change", applyFilters);
@@ -433,17 +480,24 @@ HTML_TEMPLATE = """
         });
 
         function applyFilters() {
+            const taiwanOnly = document.getElementById("filter-taiwan-only").checked;
             const startDate = document.getElementById("filter-start-date").value;
             const endDate = document.getElementById("filter-end-date").value;
             const selectedTech = document.getElementById("filter-tech").value.toLowerCase();
             const searchText = document.getElementById("filter-search").value.toLowerCase().trim();
 
             filteredArticles = rawArticlesData.filter(art => {
+                // Taiwan 專屬勾選篩選
+                if (taiwanOnly) {
+                    const countryStr = String(art.country || "").toLowerCase();
+                    if (!countryStr.includes("taiwan")) return false;
+                }
+
                 // 日期篩選
                 if (startDate && art.date < startDate) return false;
                 if (endDate && art.date > endDate) return false;
 
-                // 技術類型篩選 (包含於字串內)
+                // 技術類型篩選
                 if (selectedTech) {
                     const techStr = String(art.tech_types).toLowerCase();
                     if (!techStr.includes(selectedTech)) return false;
@@ -451,7 +505,7 @@ HTML_TEMPLATE = """
 
                 // 關鍵字搜尋
                 if (searchText) {
-                    const fullContent = (art.title + art.journal + art.zh_summary + art.abstract).toLowerCase();
+                    const fullContent = (art.title + art.journal + art.zh_summary + art.abstract + (art.country || "")).toLowerCase();
                     if (!fullContent.includes(searchText)) return false;
                 }
 
@@ -484,11 +538,13 @@ HTML_TEMPLATE = """
                 const techs = String(art.tech_types).split(",").map(t => t.trim());
                 const techBadges = techs.map(t => `<span class="badge-tech">🔬 ${t}</span>`).join(" ");
                 const fullTextBadge = art.has_fulltext ? `<span class="badge-fulltext">📄 全文分析</span>` : ``;
+                const countryBadge = `<span class="badge-country">🌐 ${art.country || '未知國家'}</span>`;
 
                 const cardHtml = `
                     <div class="card">
                         <h2><a href="${art.url}" target="_blank">${art.title}</a></h2>
                         <div class="meta">
+                            ${countryBadge}
                             ${techBadges}
                             <span class="badge-sample">📊 樣本: ${art.sample_size}</span>
                             ${fullTextBadge}
@@ -526,6 +582,7 @@ HTML_TEMPLATE = """
         }
 
         function resetFilters() {
+            document.getElementById("filter-taiwan-only").checked = false;
             document.getElementById("filter-start-date").value = "";
             document.getElementById("filter-end-date").value = "";
             document.getElementById("filter-tech").value = "";
@@ -557,10 +614,12 @@ def main():
         else:
             art["has_fulltext"] = bool(art["has_fulltext"])
 
+        if "country" not in art or pd.isna(art["country"]):
+            art["country"] = "未知國家"
+
     template = Template(HTML_TEMPLATE)
     updated_at = datetime.datetime.now(TAIPEI_TZ).strftime("%Y-%m-%d %H:%M:%S")
     
-    import json
     articles_json = json.dumps(db_articles, ensure_ascii=False)
     
     html_content = template.render(
