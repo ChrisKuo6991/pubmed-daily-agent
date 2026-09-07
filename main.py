@@ -359,7 +359,7 @@ HTML_TEMPLATE = """
         /* 篩選與搜尋面板 */
         .filter-panel { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
         .filter-group { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
-        .filter-group input[type="text"], .filter-group input[type="date"], .filter-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .filter-group input[type="text"], .filter-group input[type="date"], .filter-group select, .filter-group input[type="number"] { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         
         /* Taiwan 勾選框特別樣式 */
         .taiwan-checkbox-label { background: #e7f3ff; color: #0056b3; padding: 6px 12px; border-radius: 20px; border: 1px solid #b6d4fe; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none; }
@@ -386,10 +386,12 @@ HTML_TEMPLATE = """
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
 
         /* 分頁元件 */
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 30px 0; }
-        .pagination button { background: #0056b3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin: 30px 0; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .pagination-left, .pagination-right { display: flex; align-items: center; gap: 10px; }
+        .pagination button { background: #0056b3; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .pagination button:disabled { background: #ccc; cursor: not-allowed; }
         .page-info { font-size: 14px; font-weight: 500; }
+        .pagination select, .pagination input[type="number"] { padding: 5px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         
         details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
         summary { cursor: pointer; font-weight: 500; }
@@ -444,9 +446,32 @@ HTML_TEMPLATE = """
 
         <!-- 分頁控制欄 -->
         <div class="pagination">
-            <button id="btn-prev" onclick="changePage(-1)">上一頁</button>
-            <span class="page-info" id="page-info">第 1 頁 / 共 1 頁</span>
-            <button id="btn-next" onclick="changePage(1)">下一頁</button>
+            <div class="pagination-left">
+                <label for="page-size-select"><strong>每頁顯示：</strong></label>
+                <select id="page-size-select" onchange="changePageSize()">
+                    <option value="20" selected>20 筆</option>
+                    <option value="50">50 筆</option>
+                    <option value="100">100 筆</option>
+                </select>
+            </div>
+
+            <div class="pagination-right">
+                <button id="btn-prev" onclick="changePage(-1)">上一頁</button>
+                
+                <span class="page-info">
+                    第 
+                    <select id="page-select" onchange="jumpToSelectedPage()"></select>
+                    / 共 <span id="total-pages-text">1</span> 頁
+                </span>
+
+                <button id="btn-next" onclick="changePage(1)">下一頁</button>
+
+                <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+                    <span>跳至</span>
+                    <input type="number" id="jump-page-input" min="1" placeholder="頁碼" style="width: 60px;">
+                    <button onclick="jumpToInputPage()">GO</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -456,7 +481,7 @@ HTML_TEMPLATE = """
         
         let filteredArticles = [...rawArticlesData];
         let currentPage = 1;
-        const itemsPerPage = 15;
+        let itemsPerPage = 20;
 
         // 初始化
         document.addEventListener("DOMContentLoaded", () => {
@@ -529,7 +554,10 @@ HTML_TEMPLATE = """
                 return;
             }
 
-            const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
+            const totalPages = Math.ceil(filteredArticles.length / itemsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
             const startIndex = (currentPage - 1) * itemsPerPage;
             const pageData = filteredArticles.slice(startIndex, startIndex + itemsPerPage);
 
@@ -570,15 +598,60 @@ HTML_TEMPLATE = """
         }
 
         function updatePaginationControls(totalPages) {
-            document.getElementById("page-info").textContent = `第 ${currentPage} 頁 / 共 ${totalPages || 1} 頁 (篩選出 ${filteredArticles.length} 筆)`;
+            document.getElementById("total-pages-text").textContent = totalPages || 1;
             document.getElementById("btn-prev").disabled = (currentPage <= 1);
             document.getElementById("btn-next").disabled = (currentPage >= totalPages || totalPages === 0);
+
+            // 更新頁碼選單
+            const pageSelect = document.getElementById("page-select");
+            pageSelect.innerHTML = "";
+            for (let i = 1; i <= totalPages; i++) {
+                const opt = document.createElement("option");
+                opt.value = i;
+                opt.textContent = i;
+                if (i === currentPage) opt.selected = true;
+                pageSelect.appendChild(opt);
+            }
+
+            document.getElementById("jump-page-input").max = totalPages;
         }
 
         function changePage(delta) {
             currentPage += delta;
             renderArticles();
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 切換每頁筆數 (20 / 50 / 100)
+        function changePageSize() {
+            const select = document.getElementById("page-size-select");
+            itemsPerPage = parseInt(select.value, 10);
+            currentPage = 1;
+            renderArticles();
+        }
+
+        // 從選單動態跳轉頁碼
+        function jumpToSelectedPage() {
+            const select = document.getElementById("page-select");
+            currentPage = parseInt(select.value, 10);
+            renderArticles();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 輸入頁碼跳轉
+        function jumpToInputPage() {
+            const input = document.getElementById("jump-page-input");
+            const targetPage = parseInt(input.value, 10);
+            const totalPages = Math.ceil(filteredArticles.length / itemsPerPage) || 1;
+
+            if (targetPage >= 1 && targetPage <= totalPages) {
+                currentPage = targetPage;
+                renderArticles();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                alert(`請輸入有效的頁碼 (1 ~ ${totalPages})`);
+            }
+            input.value = "";
         }
 
         function resetFilters() {
