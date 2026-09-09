@@ -43,7 +43,7 @@ def fetch_open_access_fulltext(pmid):
             full_text = "\n".join(full_passages)
             if len(full_text) > 500:
                 print(f"  [Full-Text] PMID: {pmid} 獲取全文成功")
-                return full_text[:25000]
+                return full_text[:13000]
     except Exception:
         pass
     return None
@@ -92,12 +92,16 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
         for attempt in range(1, retries + 1):
             try:
                 response = client.models.generate_content(model=model_name, contents=prompt)
-                time.sleep(1)
+                time.sleep(3)
                 return response.text.strip()
             except Exception as e:
                 err_str = str(e).lower()
-                if any(k in err_str for k in ["429", "quota", "limit"]) and attempt < retries:
-                    time.sleep(delay * attempt)
+                print(f"  ⚠️ API 呼叫失敗 ({model_name}) [嘗試 {attempt}/{retries}]: {e}")
+                if attempt < retries:
+                    # 遇到錯誤時，冷卻時間加倍 (例如: 5s, 10s, 15s...)
+                    wait_time = delay * attempt
+                    print(f"  ⏳ 等待 {wait_time} 秒後重試...")
+                    time.sleep(wait_time)
                 else:
                     raise e
 
