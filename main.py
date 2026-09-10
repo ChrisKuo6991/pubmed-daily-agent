@@ -49,7 +49,7 @@ def fetch_open_access_fulltext(pmid):
             full_text = "\n".join(full_passages)
             if len(full_text) > 500:
                 print(f"  [Full-Text Success] PMID: {pmid} 成功獲取 Open Access 全文 ({len(full_text)} 字)")
-                return full_text[:25000]  # 控制長度在 25k 字內
+                return full_text[:18000]  # 控制長度在 18k 字內
     except Exception:
         pass
     return None
@@ -103,7 +103,7 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
                     model=model_name,
                     contents=prompt,
                 )
-                time.sleep(1)
+                time.sleep(3)
                 return response.text.strip()
             except Exception as e:
                 err_str = str(e).lower()
