@@ -368,6 +368,10 @@ HTML_TEMPLATE = """
         .btn-reset { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .btn-reset:hover { background: #5a6268; }
 
+        /* 新增：篩選統計結果顯示標籤 */
+        .filter-result-badge { background-color: #e2e3e5; color: #1b1e21; font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; margin-left: auto; border: 1px solid #d6d8db; }
+        .filter-result-badge span { color: #0056b3; font-size: 16px; }
+
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .card h2 { margin-top: 0; font-size: 18px; line-height: 1.4; }
         .card h2 a { color: #0056b3; text-decoration: none; }
@@ -439,6 +443,11 @@ HTML_TEMPLATE = """
                 <input type="text" id="filter-search" placeholder="搜尋標題/摘要/期刊...">
             </div>
             <button class="btn-reset" onclick="resetFilters()">重置篩選</button>
+            
+            <!-- ⭐ 新增：符合條件的論文數量顯示 -->
+            <div class="filter-result-badge">
+                符合條件：<span id="filtered-count">0</span> 篇
+            </div>
         </div>
 
         <!-- 文章容器 -->
@@ -536,6 +545,9 @@ HTML_TEMPLATE = """
 
                 return true;
             });
+
+            // ⭐ 更新篩選後的數量顯示
+            document.getElementById("filtered-count").textContent = filteredArticles.length;
 
             // 預設由最新日期開始排序 (最新在最前)
             filteredArticles.sort((a, b) => (b.date > a.date ? 1 : -1));
@@ -666,44 +678,3 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
-
-
-def main():
-    if_map = load_impact_factors_from_excel(EXCEL_IF_PATH)
-    
-    # 1. 抓取每日最新論文
-    new_articles = fetch_latest_pubmed_articles(SEARCH_TERM, if_map, max_results=MAX_RESULTS)
-    
-    # 2. 儲存並同步至歷史 Excel 資料庫
-    db_df = sync_database_to_excel(new_articles, DB_EXCEL_PATH)
-    
-    # 3. 將資料庫全數導出為 JSON 並嵌入 HTML 前端
-    db_articles = db_df.to_dict(orient="records")
-    
-    # 確保 JSON 相容性 (處理布林值與欄位)
-    for art in db_articles:
-        if "has_fulltext" not in art or pd.isna(art["has_fulltext"]):
-            art["has_fulltext"] = False
-        else:
-            art["has_fulltext"] = bool(art["has_fulltext"])
-
-        if "country" not in art or pd.isna(art["country"]):
-            art["country"] = "未知國家"
-
-    template = Template(HTML_TEMPLATE)
-    updated_at = datetime.datetime.now(TAIPEI_TZ).strftime("%Y-%m-%d %H:%M:%S")
-    
-    articles_json = json.dumps(db_articles, ensure_ascii=False)
-    
-    html_content = template.render(
-        articles_json=articles_json,
-        updated_at=updated_at
-    )
-
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print("🎉 index.html 與 Excel 資料庫更新完成！")
-
-
-if __name__ == "__main__":
-    main()
