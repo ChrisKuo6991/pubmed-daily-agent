@@ -678,3 +678,44 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
+
+
+def main():
+    if_map = load_impact_factors_from_excel(EXCEL_IF_PATH)
+    
+    # 1. 抓取每日最新論文
+    new_articles = fetch_latest_pubmed_articles(SEARCH_TERM, if_map, max_results=MAX_RESULTS)
+    
+    # 2. 儲存並同步至歷史 Excel 資料庫
+    db_df = sync_database_to_excel(new_articles, DB_EXCEL_PATH)
+    
+    # 3. 將資料庫全數導出為 JSON 並嵌入 HTML 前端
+    db_articles = db_df.to_dict(orient="records")
+    
+    # 確保 JSON 相容性 (處理布林值與欄位)
+    for art in db_articles:
+        if "has_fulltext" not in art or pd.isna(art["has_fulltext"]):
+            art["has_fulltext"] = False
+        else:
+            art["has_fulltext"] = bool(art["has_fulltext"])
+
+        if "country" not in art or pd.isna(art["country"]):
+            art["country"] = "未知國家"
+
+    template = Template(HTML_TEMPLATE)
+    updated_at = datetime.datetime.now(TAIPEI_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    
+    articles_json = json.dumps(db_articles, ensure_ascii=False)
+    
+    html_content = template.render(
+        articles_json=articles_json,
+        updated_at=updated_at
+    )
+
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("🎉 index.html 與 Excel 資料庫更新完成！")
+
+
+if __name__ == "__main__":
+    main()
