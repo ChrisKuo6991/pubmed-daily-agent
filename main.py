@@ -348,9 +348,11 @@ HTML_TEMPLATE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PubMed 每日論文 AI 快訊與資料庫</title>
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         header { background: #0056b3; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         header h1 { margin: 0; font-size: 24px; }
         .stats-bar { font-size: 14px; margin-top: 8px; opacity: 0.95; }
@@ -368,9 +370,24 @@ HTML_TEMPLATE = """
         .btn-reset { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .btn-reset:hover { background: #5a6268; }
 
-        /* 新增：篩選統計結果顯示標籤 */
         .filter-result-badge { background-color: #e2e3e5; color: #1b1e21; font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; margin-left: auto; border: 1px solid #d6d8db; }
         .filter-result-badge span { color: #0056b3; font-size: 16px; }
+
+        /* ⭐ Layout 雙欄佈局：左側側邊欄，右側文章列表 */
+        .main-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .sidebar { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; sticky; top: 20px; }
+        .content-area { flex-grow: 1; min-width: 0; }
+
+        /* Dashboard 側邊欄卡片 */
+        .dash-card { background: white; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .dash-card h3 { margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #0056b3; border-bottom: 2px solid #e7f3ff; padding-bottom: 6px; }
+        
+        .top-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
+        .top-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #eee; }
+        .top-list li:last-child { border-bottom: none; }
+        .top-list .rank { font-weight: bold; color: #0056b3; margin-right: 6px; width: 18px; display: inline-block; }
+        .top-list .name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
+        .top-list .count { background: #e9ecef; color: #495057; font-weight: bold; padding: 2px 6px; border-radius: 10px; font-size: 12px; }
 
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .card h2 { margin-top: 0; font-size: 18px; line-height: 1.4; }
@@ -399,6 +416,11 @@ HTML_TEMPLATE = """
         
         details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
         summary { cursor: pointer; font-weight: 500; }
+
+        @media (max-width: 900px) {
+            .main-layout { flex-direction: column; }
+            .sidebar { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -444,66 +466,89 @@ HTML_TEMPLATE = """
             </div>
             <button class="btn-reset" onclick="resetFilters()">重置篩選</button>
             
-            <!-- ⭐ 新增：符合條件的論文數量顯示 -->
             <div class="filter-result-badge">
                 符合條件：<span id="filtered-count">0</span> 篇
             </div>
         </div>
 
-        <!-- 文章容器 -->
-        <div id="articles-list"></div>
-
-        <!-- 分頁控制欄 -->
-        <div class="pagination">
-            <div class="pagination-left">
-                <label for="page-size-select"><strong>每頁顯示：</strong></label>
-                <select id="page-size-select" onchange="changePageSize()">
-                    <option value="20" selected>20 筆</option>
-                    <option value="50">50 筆</option>
-                    <option value="100">100 筆</option>
-                </select>
-            </div>
-
-            <div class="pagination-right">
-                <button id="btn-prev" onclick="changePage(-1)">上一頁</button>
-                
-                <span class="page-info">
-                    第 
-                    <select id="page-select" onchange="jumpToSelectedPage()"></select>
-                    / 共 <span id="total-pages-text">1</span> 頁
-                </span>
-
-                <button id="btn-next" onclick="changePage(1)">下一頁</button>
-
-                <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
-                    <span>跳至</span>
-                    <input type="number" id="jump-page-input" min="1" placeholder="頁碼" style="width: 60px;">
-                    <button onclick="jumpToInputPage()">GO</button>
+        <!-- 主體區域：雙欄結構 -->
+        <div class="main-layout">
+            <!-- ⭐ 左側 Dashboard 側邊欄 -->
+            <aside class="sidebar">
+                <!-- 1. 技術類型佔比餅圖 (不含 others) -->
+                <div class="dash-card">
+                    <h3>🔬 技術類型佔比 (不含 others)</h3>
+                    <div style="max-width: 260px; margin: 0 auto;">
+                        <canvas id="techChart"></canvas>
+                    </div>
                 </div>
-            </div>
+
+                <!-- 2. Top 5 期刊 -->
+                <div class="dash-card">
+                    <h3>📖 Top 5 收錄期刊</h3>
+                    <ul class="top-list" id="top-journals-list"></ul>
+                </div>
+
+                <!-- 3. Top 5 國家 -->
+                <div class="dash-card">
+                    <h3>🌐 Top 5 研究國家/地區</h3>
+                    <ul class="top-list" id="top-countries-list"></ul>
+                </div>
+            </aside>
+
+            <!-- 右側內容區：論文列表與分頁 -->
+            <main class="content-area">
+                <div id="articles-list"></div>
+
+                <div class="pagination">
+                    <div class="pagination-left">
+                        <label for="page-size-select"><strong>每頁顯示：</strong></label>
+                        <select id="page-size-select" onchange="changePageSize()">
+                            <option value="20" selected>20 筆</option>
+                            <option value="50">50 筆</option>
+                            <option value="100">100 筆</option>
+                        </select>
+                    </div>
+
+                    <div class="pagination-right">
+                        <button id="btn-prev" onclick="changePage(-1)">上一頁</button>
+                        
+                        <span class="page-info">
+                            第 
+                            <select id="page-select" onchange="jumpToSelectedPage()"></select>
+                            / 共 <span id="total-pages-text">1</span> 頁
+                        </span>
+
+                        <button id="btn-next" onclick="changePage(1)">下一頁</button>
+
+                        <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+                            <span>跳至</span>
+                            <input type="number" id="jump-page-input" min="1" placeholder="頁碼" style="width: 60px;">
+                            <button onclick="jumpToInputPage()">GO</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
     <script>
-        // 載入完整歷史資料庫 (JSON 格式注入)
         const rawArticlesData = {{ articles_json | safe }};
         
         let filteredArticles = [...rawArticlesData];
         let currentPage = 1;
         let itemsPerPage = 20;
+        let techChartInstance = null; // 儲存 Chart.js 實例
 
-        // 初始化
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("total-db-count").textContent = rawArticlesData.length;
             
-            // 計算目前收錄多少屬 Taiwan 的文章
             const taiwanCount = rawArticlesData.filter(art => {
                 const countryStr = String(art.country || "").toLowerCase();
                 return countryStr.includes("taiwan");
             }).length;
             document.getElementById("taiwan-db-count").textContent = taiwanCount;
 
-            // 事件監聽
             document.getElementById("filter-taiwan-only").addEventListener("change", applyFilters);
             document.getElementById("filter-start-date").addEventListener("change", applyFilters);
             document.getElementById("filter-end-date").addEventListener("change", applyFilters);
@@ -521,23 +566,19 @@ HTML_TEMPLATE = """
             const searchText = document.getElementById("filter-search").value.toLowerCase().trim();
 
             filteredArticles = rawArticlesData.filter(art => {
-                // Taiwan 專屬勾選篩選
                 if (taiwanOnly) {
                     const countryStr = String(art.country || "").toLowerCase();
                     if (!countryStr.includes("taiwan")) return false;
                 }
 
-                // 日期篩選
                 if (startDate && art.date < startDate) return false;
                 if (endDate && art.date > endDate) return false;
 
-                // 技術類型篩選
                 if (selectedTech) {
                     const techStr = String(art.tech_types).toLowerCase();
                     if (!techStr.includes(selectedTech)) return false;
                 }
 
-                // 關鍵字搜尋
                 if (searchText) {
                     const fullContent = (art.title + art.journal + art.zh_summary + art.abstract + (art.country || "")).toLowerCase();
                     if (!fullContent.includes(searchText)) return false;
@@ -546,14 +587,106 @@ HTML_TEMPLATE = """
                 return true;
             });
 
-            // ⭐ 更新篩選後的數量顯示
             document.getElementById("filtered-count").textContent = filteredArticles.length;
 
-            // 預設由最新日期開始排序 (最新在最前)
             filteredArticles.sort((a, b) => (b.date > a.date ? 1 : -1));
+
+            // ⭐ 每次篩選更新 Dashboard 側邊欄
+            updateDashboard();
 
             currentPage = 1;
             renderArticles();
+        }
+
+        // ⭐ 更新 Dashboard (圖表、Top 5 期刊、Top 5 國家)
+        function updateDashboard() {
+            const techCounts = {};
+            const journalCounts = {};
+            const countryCounts = {};
+
+            filteredArticles.forEach(art => {
+                // 1. 統計技術 (排除 others)
+                const techs = String(art.tech_types).split(",").map(t => t.trim());
+                techs.forEach(t => {
+                    const lowT = t.toLowerCase();
+                    if (lowT && lowT !== "others" && lowT !== "none") {
+                        techCounts[t] = (techCounts[t] || 0) + 1;
+                    }
+                });
+
+                // 2. 統計期刊
+                const j = art.journal || "未知期刊";
+                journalCounts[j] = (journalCounts[j] || 0) + 1;
+
+                // 3. 統計國家
+                const c = art.country || "未知國家";
+                countryCounts[c] = (countryCounts[c] || 0) + 1;
+            });
+
+            // --- 繪製技術佔比餅圖 ---
+            renderTechChart(techCounts);
+
+            // --- 渲染 Top 5 期刊 ---
+            renderTopList("top-journals-list", journalCounts);
+
+            // --- 渲染 Top 5 國家 ---
+            renderTopList("top-countries-list", countryCounts);
+        }
+
+        function renderTechChart(techCounts) {
+            const ctx = document.getElementById('techChart').getContext('2d');
+            const labels = Object.keys(techCounts);
+            const data = Object.values(techCounts);
+
+            if (techChartInstance) {
+                techChartInstance.destroy(); // 銷毀舊圖表以利重新繪製
+            }
+
+            if (labels.length === 0) {
+                return;
+            }
+
+            techChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        function renderTopList(elementId, countMap) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = "";
+
+            const sorted = Object.entries(countMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5); // 取得前 5 名
+
+            if (sorted.length === 0) {
+                container.innerHTML = `<li style="justify-content:center; color:#999;">無資料</li>`;
+                return;
+            }
+
+            sorted.forEach(([name, count], index) => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <span><span class="rank">${index + 1}.</span> <span class="name" title="${name}">${name}</span></span>
+                    <span class="count">${count} 篇</span>
+                `;
+                container.appendChild(li);
+            });
         }
 
         function renderArticles() {
@@ -574,7 +707,6 @@ HTML_TEMPLATE = """
             const pageData = filteredArticles.slice(startIndex, startIndex + itemsPerPage);
 
             pageData.forEach(art => {
-                // 處理多技術標籤顯示
                 const techs = String(art.tech_types).split(",").map(t => t.trim());
                 const techBadges = techs.map(t => `<span class="badge-tech">🔬 ${t}</span>`).join(" ");
                 const fullTextBadge = art.has_fulltext ? `<span class="badge-fulltext">📄 全文分析</span>` : ``;
@@ -614,7 +746,6 @@ HTML_TEMPLATE = """
             document.getElementById("btn-prev").disabled = (currentPage <= 1);
             document.getElementById("btn-next").disabled = (currentPage >= totalPages || totalPages === 0);
 
-            // 更新頁碼選單
             const pageSelect = document.getElementById("page-select");
             pageSelect.innerHTML = "";
             for (let i = 1; i <= totalPages; i++) {
@@ -634,7 +765,6 @@ HTML_TEMPLATE = """
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // 切換每頁筆數 (20 / 50 / 100)
         function changePageSize() {
             const select = document.getElementById("page-size-select");
             itemsPerPage = parseInt(select.value, 10);
@@ -642,7 +772,6 @@ HTML_TEMPLATE = """
             renderArticles();
         }
 
-        // 從選單動態跳轉頁碼
         function jumpToSelectedPage() {
             const select = document.getElementById("page-select");
             currentPage = parseInt(select.value, 10);
@@ -650,7 +779,6 @@ HTML_TEMPLATE = """
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // 輸入頁碼跳轉
         function jumpToInputPage() {
             const input = document.getElementById("jump-page-input");
             const targetPage = parseInt(input.value, 10);
