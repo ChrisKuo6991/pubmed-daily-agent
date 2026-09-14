@@ -370,10 +370,16 @@ HTML_TEMPLATE = """
         .btn-reset { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .btn-reset:hover { background: #5a6268; }
 
+        /* 按鈕樣式：匯出 CSV & RIS */
+        .btn-export { background: #198754; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-export:hover { background: #146c43; }
+        .btn-export-ris { background: #0d6efd; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-export-ris:hover { background: #0b5ed7; }
+
         .filter-result-badge { background-color: #e2e3e5; color: #1b1e21; font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; margin-left: auto; border: 1px solid #d6d8db; }
         .filter-result-badge span { color: #0056b3; font-size: 16px; }
 
-        /* ⭐ Layout 雙欄佈局：左側側邊欄，右側文章列表 */
+        /* Layout 雙欄佈局 */
         .main-layout { display: flex; gap: 20px; align-items: flex-start; }
         .sidebar { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; sticky; top: 20px; }
         .content-area { flex-grow: 1; min-width: 0; }
@@ -406,6 +412,12 @@ HTML_TEMPLATE = """
         .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; }
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
 
+        /* ⭐ 引用複製列 */
+        .cite-bar { font-size: 13px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e9ecef; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .cite-bar span { font-weight: 600; color: #495057; }
+        .btn-cite { background: #f8f9fa; border: 1px solid #ced4da; color: #333; padding: 3px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .btn-cite:hover { background: #e2e6ea; border-color: #adb5bd; }
+
         /* 分頁元件 */
         .pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin: 30px 0; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         .pagination-left, .pagination-right { display: flex; align-items: center; gap: 10px; }
@@ -414,7 +426,7 @@ HTML_TEMPLATE = """
         .page-info { font-size: 14px; font-weight: 500; }
         .pagination select, .pagination input[type="number"] { padding: 5px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         
-        details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
+        details { font-size: 13px; color: #666; margin-top: 8px; }
         summary { cursor: pointer; font-weight: 500; }
 
         @media (max-width: 900px) {
@@ -466,6 +478,10 @@ HTML_TEMPLATE = """
             </div>
             <button class="btn-reset" onclick="resetFilters()">重置篩選</button>
             
+            <!-- ⭐ 新增：匯出按鈕區域 -->
+            <button class="btn-export" onclick="exportToCSV()">📥 匯出 CSV</button>
+            <button class="btn-export-ris" onclick="exportToRIS()">📚 匯出 EndNote (.ris)</button>
+
             <div class="filter-result-badge">
                 符合條件：<span id="filtered-count">0</span> 篇
             </div>
@@ -473,9 +489,8 @@ HTML_TEMPLATE = """
 
         <!-- 主體區域：雙欄結構 -->
         <div class="main-layout">
-            <!-- ⭐ 左側 Dashboard 側邊欄 -->
+            <!-- 左側 Dashboard 側邊欄 -->
             <aside class="sidebar">
-                <!-- 1. 技術類型佔比餅圖 (不含 others) -->
                 <div class="dash-card">
                     <h3>🔬 技術類型佔比 (不含 others)</h3>
                     <div style="max-width: 260px; margin: 0 auto;">
@@ -483,13 +498,11 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
 
-                <!-- 2. Top 5 期刊 -->
                 <div class="dash-card">
                     <h3>📖 Top 5 收錄期刊</h3>
                     <ul class="top-list" id="top-journals-list"></ul>
                 </div>
 
-                <!-- 3. Top 5 國家 -->
                 <div class="dash-card">
                     <h3>🌐 Top 5 研究國家/地區</h3>
                     <ul class="top-list" id="top-countries-list"></ul>
@@ -538,7 +551,7 @@ HTML_TEMPLATE = """
         let filteredArticles = [...rawArticlesData];
         let currentPage = 1;
         let itemsPerPage = 20;
-        let techChartInstance = null; // 儲存 Chart.js 實例
+        let techChartInstance = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("total-db-count").textContent = rawArticlesData.length;
@@ -588,24 +601,19 @@ HTML_TEMPLATE = """
             });
 
             document.getElementById("filtered-count").textContent = filteredArticles.length;
-
             filteredArticles.sort((a, b) => (b.date > a.date ? 1 : -1));
 
-            // ⭐ 每次篩選更新 Dashboard 側邊欄
             updateDashboard();
-
             currentPage = 1;
             renderArticles();
         }
 
-        // ⭐ 更新 Dashboard (圖表、Top 5 期刊、Top 5 國家)
         function updateDashboard() {
             const techCounts = {};
             const journalCounts = {};
             const countryCounts = {};
 
             filteredArticles.forEach(art => {
-                // 1. 統計技術 (排除 others)
                 const techs = String(art.tech_types).split(",").map(t => t.trim());
                 techs.forEach(t => {
                     const lowT = t.toLowerCase();
@@ -614,22 +622,15 @@ HTML_TEMPLATE = """
                     }
                 });
 
-                // 2. 統計期刊
                 const j = art.journal || "未知期刊";
                 journalCounts[j] = (journalCounts[j] || 0) + 1;
 
-                // 3. 統計國家
                 const c = art.country || "未知國家";
                 countryCounts[c] = (countryCounts[c] || 0) + 1;
             });
 
-            // --- 繪製技術佔比餅圖 ---
             renderTechChart(techCounts);
-
-            // --- 渲染 Top 5 期刊 ---
             renderTopList("top-journals-list", journalCounts);
-
-            // --- 渲染 Top 5 國家 ---
             renderTopList("top-countries-list", countryCounts);
         }
 
@@ -639,7 +640,7 @@ HTML_TEMPLATE = """
             const data = Object.values(techCounts);
 
             if (techChartInstance) {
-                techChartInstance.destroy(); // 銷毀舊圖表以利重新繪製
+                techChartInstance.destroy();
             }
 
             if (labels.length === 0) {
@@ -652,9 +653,7 @@ HTML_TEMPLATE = """
                     labels: labels,
                     datasets: [{
                         data: data,
-                        backgroundColor: [
-                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
-                        ]
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
                     }]
                 },
                 options: {
@@ -672,7 +671,7 @@ HTML_TEMPLATE = """
 
             const sorted = Object.entries(countMap)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 5); // 取得前 5 名
+                .slice(0, 5);
 
             if (sorted.length === 0) {
                 container.innerHTML = `<li style="justify-content:center; color:#999;">無資料</li>`;
@@ -733,12 +732,104 @@ HTML_TEMPLATE = """
                             <summary>查看英文原文摘要 (Abstract)</summary>
                             <div class="abstract-en" style="margin-top:8px;">${art.abstract}</div>
                         </details>
+                        
+                        <!-- ⭐ 複製引用按鈕區 -->
+                        <div class="cite-bar">
+                            <span>📋 複製引用:</span>
+                            <button class="btn-cite" onclick="copyCitation('${art.pmid}', 'apa')">APA</button>
+                            <button class="btn-cite" onclick="copyCitation('${art.pmid}', 'mla')">MLA</button>
+                            <button class="btn-cite" onclick="copyCitation('${art.pmid}', 'bibtex')">BibTeX</button>
+                        </div>
                     </div>
                 `;
                 container.insertAdjacentHTML("beforeend", cardHtml);
             });
 
             updatePaginationControls(totalPages);
+        }
+
+        /* ⭐ 1. 匯出目前篩選結果為 CSV */
+        function exportToCSV() {
+            if (filteredArticles.length === 0) {
+                alert("目前無可匯出的論文資料！");
+                return;
+            }
+
+            const headers = ["PMID", "Title", "Journal", "Impact_Factor", "Date", "Country", "Tech_Types", "Sample_Size", "URL", "AI_Summary"];
+            const rows = filteredArticles.map(art => [
+                `"${art.pmid}"`,
+                `"${(art.title || '').replace(/"/g, '""')}"`,
+                `"${(art.journal || '').replace(/"/g, '""')}"`,
+                `"${art.impact_factor || 'N/A'}"`,
+                `"${art.date}"`,
+                `"${art.country || ''}"`,
+                `"${art.tech_types}"`,
+                `"${art.sample_size}"`,
+                `"${art.url}"`,
+                `"${(art.zh_summary || '').replace(/"/g, '""')}"`
+            ]);
+
+            const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+            downloadFile(csvContent, `pubmed_filtered_${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8;");
+        }
+
+        /* ⭐ 2. 匯出 EndNote / Reference Manager 格式 (.ris) */
+        function exportToRIS() {
+            if (filteredArticles.length === 0) {
+                alert("目前無可匯出的論文資料！");
+                return;
+            }
+
+            let risText = "";
+            filteredArticles.forEach(art => {
+                const year = art.date ? art.date.slice(0, 4) : "";
+                risText += "TY  - JOUR\n";
+                risText += `TI  - ${art.title}\n`;
+                risText += `JO  - ${art.journal}\n`;
+                risText += `PY  - ${year}\n`;
+                risText += `DA  - ${art.date}\n`;
+                risText += `AN  - ${art.pmid}\n`;
+                risText += `UR  - ${art.url}\n`;
+                risText += `AB  - ${art.abstract}\n`;
+                risText += "ER  - \n\n";
+            });
+
+            downloadFile(risText, `pubmed_references_${new Date().toISOString().slice(0, 10)}.ris`, "application/x-research-info-systems;charset=utf-8;");
+        }
+
+        /* 檔案下載共用函數 */
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        /* ⭐ 3. 一鍵複製 APA / MLA / BibTeX 格式 */
+        function copyCitation(pmid, format) {
+            const art = rawArticlesData.find(a => String(a.pmid) === String(pmid));
+            if (!art) return;
+
+            const year = art.date ? art.date.slice(0, 4) : "n.d.";
+            let textToCopy = "";
+
+            if (format === 'apa') {
+                textToCopy = `${art.title}. (${year}). ${art.journal}. https://pubmed.ncbi.nlm.nih.gov/${art.pmid}/`;
+            } else if (format === 'mla') {
+                textToCopy = `"${art.title}." ${art.journal}, ${year}, https://pubmed.ncbi.nlm.nih.gov/${art.pmid}/.`;
+            } else if (format === 'bibtex') {
+                const citeKey = `pubmed_${art.pmid}_${year}`;
+                textToCopy = `@article{${citeKey},\n  title={${art.title}},\n  journal={${art.journal}},\n  year={${year}},\n  url={https://pubmed.ncbi.nlm.nih.gov/${art.pmid}/}\n}`;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert(`已成功複製 [${format.toUpperCase()}] 引用格式！`);
+            }).catch(err => {
+                alert("複製失敗，請檢查瀏覽器剪貼簿權限。");
+            });
         }
 
         function updatePaginationControls(totalPages) {
