@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 
 # 搜尋關鍵字與設定
-SEARCH_KEYWORDS = ["Microbiom", "metagenome", "metagenomic"]
+SEARCH_KEYWORDS = ["Microbio", "metagenome", "metagenomic"]
 SEARCH_TERM = " OR ".join(SEARCH_KEYWORDS)
 
 MAX_RESULTS = 20
