@@ -232,7 +232,6 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
         journal_title = article.findtext(".//Journal/Title") or "未知期刊"
         impact_factor = if_map.get(journal_title.strip().lower(), "N/A")
 
-        # 擷取機構資訊供國家判斷
         affiliations = []
         for aff in article.findall(".//AuthorList/Author/AffiliationInfo/Affiliation"):
             aff_text = get_full_text(aff)
@@ -244,7 +243,6 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
         abstract = " ".join([get_full_text(a) for a in abstract_texts]) if abstract_texts else "無提供摘要。"
         pub_date_str = parse_pub_date_from_article(article)
 
-        # 嘗試抓取全文
         fulltext = fetch_open_access_fulltext(pmid)
         has_fulltext_flag = " (全文)" if fulltext else " (摘要)"
 
@@ -300,16 +298,13 @@ def sync_database_to_excel(new_articles, db_path):
 
     new_df = pd.DataFrame(new_articles)
 
-    # 1. 轉化 list 欄位
     if "tech_types" in new_df.columns:
         new_df["tech_types"] = new_df["tech_types"].apply(
             lambda x: ", ".join(x) if isinstance(x, list) else str(x)
         )
 
-    # 2. 強制確保 PMID 型態為純字串，避免型態比對錯誤
     new_df["pmid"] = new_df["pmid"].astype(str).str.strip()
 
-    # 3. 讀取或合併既有 Excel
     if os.path.exists(db_path):
         print("ℹ️ 偵測到既有 Excel 檔案，進行資料合併與去重...")
         try:
@@ -325,7 +320,6 @@ def sync_database_to_excel(new_articles, db_path):
         print("ℹ️ 未發現既有檔案，準備建立全新 Excel 檔案...")
         combined_df = new_df
 
-    # 4. 排序與實體寫入
     combined_df.sort_values(by="date", ascending=False, inplace=True)
 
     try:
@@ -363,7 +357,6 @@ HTML_TEMPLATE = """
         .filter-group { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
         .filter-group input[type="text"], .filter-group input[type="date"], .filter-group select, .filter-group input[type="number"] { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         
-        /* Taiwan 勾選框特別樣式 */
         .taiwan-checkbox-label { background: #e7f3ff; color: #0056b3; padding: 6px 12px; border-radius: 20px; border: 1px solid #b6d4fe; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none; }
         .taiwan-checkbox-label input { width: 16px; height: 16px; cursor: pointer; }
 
@@ -373,12 +366,10 @@ HTML_TEMPLATE = """
         .filter-result-badge { background-color: #e2e3e5; color: #1b1e21; font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; margin-left: auto; border: 1px solid #d6d8db; }
         .filter-result-badge span { color: #0056b3; font-size: 16px; }
 
-        /* ⭐ Layout 雙欄佈局：左側側邊欄，右側文章列表 */
         .main-layout { display: flex; gap: 20px; align-items: flex-start; }
         .sidebar { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; sticky; top: 20px; }
         .content-area { flex-grow: 1; min-width: 0; }
 
-        /* Dashboard 側邊欄卡片 */
         .dash-card { background: white; padding: 18px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         .dash-card h3 { margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #0056b3; border-bottom: 2px solid #e7f3ff; padding-bottom: 6px; }
         
@@ -406,7 +397,6 @@ HTML_TEMPLATE = """
         .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; }
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
 
-        /* 分頁元件 */
         .pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin: 30px 0; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         .pagination-left, .pagination-right { display: flex; align-items: center; gap: 10px; }
         .pagination button { background: #0056b3; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 14px; }
@@ -473,11 +463,11 @@ HTML_TEMPLATE = """
 
         <!-- 主體區域：雙欄結構 -->
         <div class="main-layout">
-            <!-- ⭐ 左側 Dashboard 側邊欄 -->
+            <!-- 左側 Dashboard 側邊欄 -->
             <aside class="sidebar">
-                <!-- 1. 技術類型佔比餅圖 (不含 others) -->
+                <!-- 1. 技術類型佔比餅圖 (包含指定的 6 種技術分類) -->
                 <div class="dash-card">
-                    <h3>🔬 技術類型佔比 (不含 others)</h3>
+                    <h3>🔬 技術類型佔比</h3>
                     <div style="max-width: 260px; margin: 0 auto;">
                         <canvas id="techChart"></canvas>
                     </div>
@@ -538,7 +528,7 @@ HTML_TEMPLATE = """
         let filteredArticles = [...rawArticlesData];
         let currentPage = 1;
         let itemsPerPage = 20;
-        let techChartInstance = null; // 儲存 Chart.js 實例
+        let techChartInstance = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("total-db-count").textContent = rawArticlesData.length;
@@ -591,26 +581,44 @@ HTML_TEMPLATE = """
 
             filteredArticles.sort((a, b) => (b.date > a.date ? 1 : -1));
 
-            // ⭐ 每次篩選更新 Dashboard 側邊欄
             updateDashboard();
 
             currentPage = 1;
             renderArticles();
         }
 
-        // ⭐ 更新 Dashboard (圖表、Top 5 期刊、Top 5 國家)
+        // ⭐ 更新 Dashboard (精準統計限定的 6 種技術標籤)
         function updateDashboard() {
-            const techCounts = {};
+            // 初始化固定 6 種技術分類
+            const techCounts = {
+                "16S": 0,
+                "metagenomics": 0,
+                "metatranscriptomics": 0,
+                "metabolomics": 0,
+                "small genome": 0,
+                "others": 0
+            };
+
             const journalCounts = {};
             const countryCounts = {};
 
             filteredArticles.forEach(art => {
-                // 1. 統計技術 (排除 others)
+                // 1. 歸類與統計 6 種技術類型
                 const techs = String(art.tech_types).split(",").map(t => t.trim());
                 techs.forEach(t => {
                     const lowT = t.toLowerCase();
-                    if (lowT && lowT !== "others" && lowT !== "none") {
-                        techCounts[t] = (techCounts[t] || 0) + 1;
+                    if (lowT.includes("16s")) {
+                        techCounts["16S"]++;
+                    } else if (lowT.includes("metagenomic")) {
+                        techCounts["metagenomics"]++;
+                    } else if (lowT.includes("metatranscriptomic")) {
+                        techCounts["metatranscriptomics"]++;
+                    } else if (lowT.includes("metabolomic")) {
+                        techCounts["metabolomics"]++;
+                    } else if (lowT.includes("small genome")) {
+                        techCounts["small genome"]++;
+                    } else {
+                        techCounts["others"]++;
                     }
                 });
 
@@ -623,23 +631,23 @@ HTML_TEMPLATE = """
                 countryCounts[c] = (countryCounts[c] || 0) + 1;
             });
 
-            // --- 繪製技術佔比餅圖 ---
+            // 繪製包含 6 個項目的圓餅圖
             renderTechChart(techCounts);
 
-            // --- 渲染 Top 5 期刊 ---
             renderTopList("top-journals-list", journalCounts);
-
-            // --- 渲染 Top 5 國家 ---
             renderTopList("top-countries-list", countryCounts);
         }
 
         function renderTechChart(techCounts) {
             const ctx = document.getElementById('techChart').getContext('2d');
-            const labels = Object.keys(techCounts);
-            const data = Object.values(techCounts);
+            
+            // 僅保留數量大於 0 的項目以利圖表美觀，若數量皆為 0 則不繪製
+            const activeEntries = Object.entries(techCounts).filter(([_, count]) => count > 0);
+            const labels = activeEntries.map(([label, _]) => label);
+            const data = activeEntries.map(([_, count]) => count);
 
             if (techChartInstance) {
-                techChartInstance.destroy(); // 銷毀舊圖表以利重新繪製
+                techChartInstance.destroy();
             }
 
             if (labels.length === 0) {
@@ -653,7 +661,7 @@ HTML_TEMPLATE = """
                     datasets: [{
                         data: data,
                         backgroundColor: [
-                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
+                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6c757d'
                         ]
                     }]
                 },
@@ -672,7 +680,7 @@ HTML_TEMPLATE = """
 
             const sorted = Object.entries(countMap)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 5); // 取得前 5 名
+                .slice(0, 5);
 
             if (sorted.length === 0) {
                 container.innerHTML = `<li style="justify-content:center; color:#999;">無資料</li>`;
@@ -811,16 +819,11 @@ HTML_TEMPLATE = """
 def main():
     if_map = load_impact_factors_from_excel(EXCEL_IF_PATH)
     
-    # 1. 抓取每日最新論文
     new_articles = fetch_latest_pubmed_articles(SEARCH_TERM, if_map, max_results=MAX_RESULTS)
-    
-    # 2. 儲存並同步至歷史 Excel 資料庫
     db_df = sync_database_to_excel(new_articles, DB_EXCEL_PATH)
     
-    # 3. 將資料庫全數導出為 JSON 並嵌入 HTML 前端
     db_articles = db_df.to_dict(orient="records")
     
-    # 確保 JSON 相容性 (處理布林值與欄位)
     for art in db_articles:
         if "has_fulltext" not in art or pd.isna(art["has_fulltext"]):
             art["has_fulltext"] = False
