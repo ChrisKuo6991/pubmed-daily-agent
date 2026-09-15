@@ -363,10 +363,6 @@ HTML_TEMPLATE = """
         .btn-reset { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .btn-reset:hover { background: #5a6268; }
 
-        /* ⭐ 匯出按鈕樣式 */
-        .btn-export { background: #198754; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .btn-export:hover { background: #157347; }
-
         .filter-result-badge { background-color: #e2e3e5; color: #1b1e21; font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 6px; margin-left: auto; border: 1px solid #d6d8db; }
         .filter-result-badge span { color: #0056b3; font-size: 16px; }
 
@@ -384,7 +380,7 @@ HTML_TEMPLATE = """
         .top-list .name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
         .top-list .count { background: #e9ecef; color: #495057; font-weight: bold; padding: 2px 6px; border-radius: 10px; font-size: 12px; }
 
-        /* ⭐ 流量統計卡片樣式 */
+        /* 流量統計卡片樣式 */
         .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         .analytics-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; border-radius: 6px; text-align: center; }
         .analytics-box .val { font-size: 20px; font-weight: bold; color: #0056b3; margin-top: 4px; }
@@ -465,8 +461,6 @@ HTML_TEMPLATE = """
                 <input type="text" id="filter-search" placeholder="搜尋標題/摘要/期刊...">
             </div>
             <button class="btn-reset" onclick="resetFilters()">重置篩選</button>
-            <!-- ⭐ 匯出按鈕 -->
-            <button class="btn-export" onclick="exportFilteredToCSV()">📥 匯出目前篩選結果 (CSV)</button>
             
             <div class="filter-result-badge">
                 符合條件：<span id="filtered-count">0</span> 篇
@@ -475,7 +469,7 @@ HTML_TEMPLATE = """
 
         <!-- 主體區域：雙欄結構 -->
         <div class="main-layout">
-            <!-- ⭐ 左側 Dashboard 側邊欄 -->
+            <!-- 左側 Dashboard 側邊欄 -->
             <aside class="sidebar">
                 <!-- 1. 技術類型佔比餅圖 (不含 others) -->
                 <div class="dash-card">
@@ -497,7 +491,7 @@ HTML_TEMPLATE = """
                     <ul class="top-list" id="top-countries-list"></ul>
                 </div>
 
-                <!-- ⭐ 4. 全站流量與訪客來源統計 (持久化 Counter) -->
+                <!-- 4. 全站流量與訪客來源統計 (持久化 Counter) -->
                 <div class="dash-card">
                     <h3>📈 全站流量與訪客統計</h3>
                     <div class="analytics-grid">
@@ -583,7 +577,7 @@ HTML_TEMPLATE = """
             initVisitorAnalytics();
         });
 
-        /* ⭐ 持久化 PV/UV 與訪客國家累計數 (基於 CountAPI 與 GeoIP) */
+        /* 持久化 PV/UV 與訪客國家累計數 (基於 CountAPI 與 GeoIP) */
         async function initVisitorAnalytics() {
             try {
                 // 1. 累加 PV
@@ -663,41 +657,6 @@ HTML_TEMPLATE = """
                 `;
                 container.appendChild(li);
             });
-        }
-
-        /* ⭐ 匯出目前篩選結果為 CSV 檔案 (包含 BOM 解決中文亂碼) */
-        function exportFilteredToCSV() {
-            if (filteredArticles.length === 0) {
-                alert("目前沒有可供匯出的篩選結果！");
-                return;
-            }
-
-            const headers = ["PMID", "標題", "期刊", "Impact Factor", "技術類型", "樣本數量", "研究國家", "出版日期", "AI 中文摘要", "PubMed 連結"];
-            
-            const rows = filteredArticles.map(art => [
-                `"${art.pmid}"`,
-                `"${(art.title || '').replace(/"/g, '""')}"`,
-                `"${(art.journal || '').replace(/"/g, '""')}"`,
-                `"${art.impact_factor || 'N/A'}"`,
-                `"${(art.tech_types || '').replace(/"/g, '""')}"`,
-                `"${(art.sample_size || '').replace(/"/g, '""')}"`,
-                `"${(art.country || '').replace(/"/g, '""')}"`,
-                `"${art.date || ''}"`,
-                `"${(art.zh_summary || '').replace(/"/g, '""')}"`,
-                `"${art.url || ''}"`
-            ]);
-
-            const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            
-            const link = document.createElement("a");
-            const dateStr = new Date().toISOString().slice(0, 10);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `PubMed_Filtered_Articles_${dateStr}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
 
         function applyFilters() {
