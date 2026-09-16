@@ -12,6 +12,8 @@ on:
 jobs:
   run-crawler:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 顯式宣告給予內容寫入權限
 
     steps:
       - name: Checkout Repository
