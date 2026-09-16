@@ -374,11 +374,14 @@ HTML_TEMPLATE = """
         .dash-card h3 { margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #0056b3; border-bottom: 2px solid #e7f3ff; padding-bottom: 6px; }
         
         .top-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-        .top-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #eee; }
+        .top-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px dashed #eee; border-radius: 4px; transition: background-color 0.2s; }
         .top-list li:last-child { border-bottom: none; }
+        .top-list li.clickable { cursor: pointer; }
+        .top-list li.clickable:hover { background-color: #f0f7ff; }
         .top-list .rank { font-weight: bold; color: #0056b3; margin-right: 6px; width: 18px; display: inline-block; }
         .top-list .name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
         .top-list .count { background: #e9ecef; color: #495057; font-weight: bold; padding: 2px 6px; border-radius: 10px; font-size: 12px; }
+        .top-list li.clickable:hover .count { background: #0056b3; color: white; }
 
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .card h2 { margin-top: 0; font-size: 18px; line-height: 1.4; }
@@ -452,7 +455,7 @@ HTML_TEMPLATE = """
             </div>
             <div class="filter-group">
                 <label>🔍 關鍵字:</label>
-                <input type="text" id="filter-search" placeholder="搜尋標題/摘要/期刊...">
+                <input type="text" id="filter-search" placeholder="搜尋標題/摘要/期刊/國家...">
             </div>
             <button class="btn-reset" onclick="resetFilters()">重置篩選</button>
             
@@ -465,7 +468,7 @@ HTML_TEMPLATE = """
         <div class="main-layout">
             <!-- 左側 Dashboard 側邊欄 -->
             <aside class="sidebar">
-                <!-- 1. 技術類型佔比餅圖 (包含指定的 6 種技術分類) -->
+                <!-- 1. 技術類型佔比餅圖 -->
                 <div class="dash-card">
                     <h3>🔬 技術類型佔比</h3>
                     <div style="max-width: 260px; margin: 0 auto;">
@@ -587,9 +590,8 @@ HTML_TEMPLATE = """
             renderArticles();
         }
 
-        // ⭐ 更新 Dashboard (精準統計限定的 6 種技術標籤)
+        // ⭐ 更新 Dashboard
         function updateDashboard() {
-            // 初始化固定 6 種技術分類
             const techCounts = {
                 "16S": 0,
                 "metagenomics": 0,
@@ -626,22 +628,30 @@ HTML_TEMPLATE = """
                 const j = art.journal || "未知期刊";
                 journalCounts[j] = (journalCounts[j] || 0) + 1;
 
-                // 3. 統計國家
-                const c = art.country || "未知國家";
-                countryCounts[c] = (countryCounts[c] || 0) + 1;
+                // 3. 統計國家 (拆分逗號/斜線/與號，並排除「未知國家」)
+                const rawCountryStr = String(art.country || "").trim();
+                if (rawCountryStr) {
+                    // 以逗號, 分號;, 斜線/, 和/and/等符號進行拆分
+                    const countries = rawCountryStr.split(/[,;\/&]| and /i).map(c => c.trim()).filter(c => c);
+                    countries.forEach(c => {
+                        const lowC = c.toLowerCase();
+                        // 排除「未知國家」、「未提及」與空白
+                        if (lowC !== "未知國家" && lowC !== "未提及" && lowC !== "unknown" && lowC !== "n/a") {
+                            countryCounts[c] = (countryCounts[c] || 0) + 1;
+                        }
+                    });
+                }
             });
 
-            // 繪製包含 6 個項目的圓餅圖
             renderTechChart(techCounts);
-
             renderTopList("top-journals-list", journalCounts);
-            renderTopList("top-countries-list", countryCounts);
+            // 國家列表可點擊進行篩選
+            renderTopList("top-countries-list", countryCounts, true);
         }
 
         function renderTechChart(techCounts) {
             const ctx = document.getElementById('techChart').getContext('2d');
             
-            // 僅保留數量大於 0 的項目以利圖表美觀，若數量皆為 0 則不繪製
             const activeEntries = Object.entries(techCounts).filter(([_, count]) => count > 0);
             const labels = activeEntries.map(([label, _]) => label);
             const data = activeEntries.map(([_, count]) => count);
@@ -674,7 +684,7 @@ HTML_TEMPLATE = """
             });
         }
 
-        function renderTopList(elementId, countMap) {
+        function renderTopList(elementId, countMap, isClickable = false) {
             const container = document.getElementById(elementId);
             container.innerHTML = "";
 
@@ -689,12 +699,24 @@ HTML_TEMPLATE = """
 
             sorted.forEach(([name, count], index) => {
                 const li = document.createElement("li");
+                if (isClickable) {
+                    li.classList.add("clickable");
+                    li.title = `點擊篩選：${name}`;
+                    li.onclick = () => filterByCountry(name);
+                }
                 li.innerHTML = `
                     <span><span class="rank">${index + 1}.</span> <span class="name" title="${name}">${name}</span></span>
                     <span class="count">${count} 篇</span>
                 `;
                 container.appendChild(li);
             });
+        }
+
+        // 點選 Top 國家時，自動填入搜尋框並進行觸發篩選
+        function filterByCountry(countryName) {
+            const searchInput = document.getElementById("filter-search");
+            searchInput.value = countryName;
+            applyFilters();
         }
 
         function renderArticles() {
