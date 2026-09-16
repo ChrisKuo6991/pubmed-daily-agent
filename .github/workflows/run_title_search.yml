@@ -1,0 +1,42 @@
+name: PubMed Paper Title Search
+
+on:
+  workflow_dispatch:
+    inputs:
+      titles:
+        description: '輸入論文標題 (可多筆，請用半形分號 ; 或換行分隔)'
+        required: true
+        type: string
+        default: "Gut microbiome alteration is associated with disease activity in patients with Hashimoto's thyroiditis"
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl requests google-genai
+
+      - name: Execute Title Search Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TARGET_TITLES: ${{ inputs.titles }}
+        run: |
+          python titleSearch.py
+
+      - name: Commit and Push Updated Excel Database
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add papers_database.xlsx
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update papers database via GitHub Actions" && git push)
