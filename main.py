@@ -411,7 +411,7 @@ HTML_TEMPLATE = """
         summary { cursor: pointer; font-weight: 500; }
 
         /* 頁尾加註資訊樣式 */
-        footer { text-align: center; font-size: 12px; color: #6c757d; padding: 15px 0 25px 0; line-height: 1.5; }
+        footer { text-align: center; font-size: 14px; color: #6c757d; padding: 15px 0 25px 0; line-height: 1.5; }
         footer a { color: #0056b3; text-decoration: none; }
         footer a:hover { text-decoration: underline; }
 
@@ -424,7 +424,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <header>
-            <h1>圖爾思微生物體研究中心 每日最新微生物領域論文 AI 快訊與檢索庫</h1>
+            <h1>圖爾思微生物體研究中心 最新微生物論文 AI 快訊</h1>
             <p class="stats-bar">
                 資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 ｜ 
                 🇹🇼 台灣團隊文章：<span class="highlight-count" id="taiwan-db-count">0</span> 筆 ｜ 
