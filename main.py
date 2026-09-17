@@ -440,7 +440,7 @@ HTML_TEMPLATE = """
             <h1>圖爾思微生物體研究中心 最新微生物論文 AI 快訊</h1>
             <p class="stats-bar">
                 資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 ｜ 
-                🇹🇼 台灣團隊文章：<span class="highlight-count" id="taiwan-db-count">0</span> 筆 ｜ 
+                台灣團隊文章：<span class="highlight-count" id="taiwan-db-count">0</span> 筆 ｜ 
                 最後更新：{{ updated_at }}
             </p>
         </header>
@@ -448,7 +448,7 @@ HTML_TEMPLATE = """
         <!-- 篩選控制列 -->
         <div class="filter-panel">
             <label class="taiwan-checkbox-label">
-                <input type="checkbox" id="filter-taiwan-only"> 🇹🇼 只顯示 Taiwan 論文
+                <input type="checkbox" id="filter-taiwan-only"> 只顯示 Taiwan 論文
             </label>
 
             <div class="filter-group">
