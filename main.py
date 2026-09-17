@@ -437,7 +437,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <header>
-            <h1>圖爾思微生物體研究中心 最新微生物論文 AI 快訊</h1>
+            <h1>圖爾思微生物體研究中心 微生物論文 AI 快訊</h1>
             <p class="stats-bar">
                 資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 ｜ 
                 台灣團隊文章：<span class="highlight-count" id="taiwan-db-count">0</span> 筆 ｜ 
