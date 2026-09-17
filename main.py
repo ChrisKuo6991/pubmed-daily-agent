@@ -400,7 +400,7 @@ HTML_TEMPLATE = """
         .ai-summary-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 5px; }
         .ai-summary-content { font-size: 14px; color: #2c3e50; line-height: 1.6; }
 
-        .pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin: 30px 0; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin: 30px 0 15px 0; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         .pagination-left, .pagination-right { display: flex; align-items: center; gap: 10px; }
         .pagination button { background: #0056b3; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .pagination button:disabled { background: #ccc; cursor: not-allowed; }
@@ -409,6 +409,11 @@ HTML_TEMPLATE = """
         
         details { font-size: 13px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
         summary { cursor: pointer; font-weight: 500; }
+
+        /* 頁尾加註資訊樣式 */
+        footer { text-align: center; font-size: 12px; color: #6c757d; padding: 15px 0 25px 0; line-height: 1.5; }
+        footer a { color: #0056b3; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
 
         @media (max-width: 900px) {
             .main-layout { flex-direction: column; }
@@ -419,7 +424,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <header>
-            <h1>圖爾思微生物體研究中心 每日最新論文 AI 快訊與檢索庫</h1>
+            <h1>圖爾思微生物體研究中心 每日最新微生物領域論文 AI 快訊與檢索庫</h1>
             <p class="stats-bar">
                 資料庫目前收錄：<strong id="total-db-count">0</strong> 筆論文 ｜ 
                 🇹🇼 台灣團隊文章：<span class="highlight-count" id="taiwan-db-count">0</span> 筆 ｜ 
@@ -521,6 +526,12 @@ HTML_TEMPLATE = """
                         </div>
                     </div>
                 </div>
+
+                <!-- 頁尾備註訊息 -->
+                <footer>
+                    <div>論文解析內容由AI自動整理，請斟酌參考</div>
+                    <div>聯繫方式：<a href="mailto:chris@toolsbiotech.com">chris@toolsbiotech.com</a></div>
+                </footer>
             </main>
         </div>
     </div>
@@ -631,11 +642,9 @@ HTML_TEMPLATE = """
                 // 3. 統計國家 (拆分逗號/斜線/與號，並排除「未知國家」)
                 const rawCountryStr = String(art.country || "").trim();
                 if (rawCountryStr) {
-                    // 以逗號, 分號;, 斜線/, 和/and/等符號進行拆分
                     const countries = rawCountryStr.split(/[,;\/&]| and /i).map(c => c.trim()).filter(c => c);
                     countries.forEach(c => {
                         const lowC = c.toLowerCase();
-                        // 排除「未知國家」、「未提及」與空白
                         if (lowC !== "未知國家" && lowC !== "未提及" && lowC !== "unknown" && lowC !== "n/a") {
                             countryCounts[c] = (countryCounts[c] || 0) + 1;
                         }
@@ -645,7 +654,6 @@ HTML_TEMPLATE = """
 
             renderTechChart(techCounts);
             renderTopList("top-journals-list", journalCounts);
-            // 國家列表可點擊進行篩選
             renderTopList("top-countries-list", countryCounts, true);
         }
 
@@ -712,7 +720,6 @@ HTML_TEMPLATE = """
             });
         }
 
-        // 點選 Top 國家時，自動填入搜尋框並進行觸發篩選
         function filterByCountry(countryName) {
             const searchInput = document.getElementById("filter-search");
             searchInput.value = countryName;
