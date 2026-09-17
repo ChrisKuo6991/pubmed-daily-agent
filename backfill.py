@@ -50,6 +50,7 @@ def fetch_open_access_fulltext(pmid):
 
 
 def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3, delay=5):
+    """使用 LLM 解析技術類型、樣本數、通訊作者國家與中文摘要 (優先使用 Full Text)"""
     if not GEMINI_API_KEY:
         return ["others"], "未提及", "未知國家", "⚠️ 未設定 GEMINI_API_KEY"
 
@@ -67,13 +68,27 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
 4. metabolomics (代謝組學 / 代謝體學 / LC-MS, GC-MS 等代謝物分析)
 5. small genome (小型基因體 / 菌株全基因體完成圖 / viral/bacterial genome assembly)
 6. others (若不屬於上述五者，或無法明確判斷)
-⚠️ 若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔。
+⚠️ 若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
 
-任務二：擷取該研究的「研究樣本數量」（例如：n=50、120 位受試者等）。若文章未提及則填寫「未提及」。
+任務二：擷取該研究的「研究樣本數量」（例如：n=50、120 位受試者、45 個糞便檢體、12 個小鼠模型、1,200 個基因體等）。
+⚠️ 請特別關注文章中的 Materials and Methods 或 Results 區塊。若文章完全未提及樣本數，請填寫「未提及」。
 
-任務三：請根據提供的作者機構資訊（Affiliation），判斷通訊作者來自的「國家/地區名稱」（若為台灣請務必精準輸出 Taiwan；其餘請輸出英文國家名稱如 USA, China 等）。若完全無法判斷請填寫「未知國家」。
+任務三：請根據提供的作者機構資訊（Affiliation），判斷通訊作者（或主要研究團隊）來自的「國家/地區名稱」（特別關注是否包含 Taiwan、ROC、Taiwan R.O.C. 等，若為台灣請務必精準輸出 Taiwan；其餘請輸出英文國家名稱如 USA, China, Germany, Japan 等）。若完全無法判斷，請填寫「未知國家」。
 
-任務四：撰寫一份「250字以內」的繁體中文重點解述。
+任務四：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現與臨床/科學意義）。
+
+⚠️【繁體中文與台灣生醫用語規範】（請務必嚴格遵循）：
+必須完全使用「台灣繁體中文」的慣用語彙與用語習慣，嚴格禁止使用中國大陸的用語與譯名。請參考以下術語對照表進行翻譯：
+- metagenomics/metagenome：請使用「總體基因體/總體基因體學」（嚴禁使用：宏基因組）
+- metatranscriptomics：請使用「總體轉錄體/總體轉錄體學」（嚴禁使用：宏轉錄組）
+- metabolomics：請使用「代謝體學」（嚴禁使用：代謝組學）
+- genomics：請使用「基因體學」（嚴禁使用：基因組學）
+- transcriptomics：請使用「轉錄體學」（嚴禁使用：轉錄組學）
+- proteomics：請使用「蛋白質體學」（嚴禁使用：蛋白質組學）
+- microbiome：請使用「微生物體/微生物群」（嚴禁使用：微生態）
+- data：請使用「資料/數據」（優先使用：資料）
+- pathway：請使用「路徑/傳導路徑」（嚴禁使用：通路）
+- cohort：請使用「佇列/研究群體」（嚴禁使用：隊列）
 
 請嚴格按照以下格式輸出：
 [技術類型]: 技術標籤1, 技術標籤2
@@ -91,45 +106,54 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
     def _call_api(model_name):
         for attempt in range(1, retries + 1):
             try:
-                response = client.models.generate_content(model=model_name, contents=prompt)
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                )
                 time.sleep(3)
                 return response.text.strip()
             except Exception as e:
                 err_str = str(e).lower()
-                print(f"  ⚠️ API 呼叫失敗 ({model_name}) [嘗試 {attempt}/{retries}]: {e}")
-                if attempt < retries:
-                    # 遇到錯誤時，冷卻時間加倍 (例如: 5s, 10s, 15s...)
-                    wait_time = delay * attempt
-                    print(f"  ⏳ 等待 {wait_time} 秒後重試...")
-                    time.sleep(wait_time)
+                if any(k in err_str for k in ["429", "quota", "limit"]) and attempt < retries:
+                    time.sleep(delay * attempt)
                 else:
                     raise e
 
     def _parse_llm_output(output_text):
-        tech_types, sample_size, country, zh_summary = ["others"], "未提及", "未知國家", output_text
+        tech_types = ["others"]
+        sample_size = "未提及"
+        country = "未知國家"
+        zh_summary = output_text
+
         tech_match = re.search(r"\[技術類型\]:\s*(.*)", output_text, re.IGNORECASE)
         if tech_match:
-            parsed_techs = [t.strip() for t in re.split(r"[,;，]", tech_match.group(1).split("\n")[0]) if t.strip()]
-            if parsed_techs: tech_types = parsed_techs
+            raw_tech_line = tech_match.group(1).split("\n")[0].strip()
+            parsed_techs = [t.strip() for t in re.split(r"[,;，]", raw_tech_line) if t.strip()]
+            if parsed_techs:
+                tech_types = parsed_techs
 
         sample_match = re.search(r"\[樣本數量\]:\s*(.*)", output_text, re.IGNORECASE)
-        if sample_match: sample_size = sample_match.group(1).split("\n")[0].strip()
+        if sample_match:
+            sample_size = sample_match.group(1).split("\n")[0].strip()
 
         country_match = re.search(r"\[研究國家\]:\s*(.*)", output_text, re.IGNORECASE)
-        if country_match: country = country_match.group(1).split("\n")[0].strip()
+        if country_match:
+            country = country_match.group(1).split("\n")[0].strip()
 
         summary_match = re.search(r"\[中文摘要\]:\s*(.*)", output_text, re.DOTALL)
-        if summary_match: zh_summary = summary_match.group(1).strip()
+        if summary_match:
+            zh_summary = summary_match.group(1).strip()
 
         return tech_types, sample_size, country, zh_summary
 
+    raw_output = None
     try:
         raw_output = _call_api(PRIMARY_MODEL)
     except Exception:
         try:
             raw_output = _call_api(FALLBACK_MODEL)
         except Exception:
-            return ["others"], "未提及", "未知國家", "AI 分析失敗。"
+            return ["others"], "未提及", "未知國家", "AI 分析失敗，請參考英文原文。"
 
     return _parse_llm_output(raw_output)
 
