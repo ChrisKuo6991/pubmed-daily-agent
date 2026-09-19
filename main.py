@@ -567,7 +567,22 @@ HTML_TEMPLATE = """
             document.getElementById("taiwan-db-count").textContent = taiwanCount;
 
             document.getElementById("filter-taiwan-only").addEventListener("change", applyFilters);
-            document.getElementById("filter-start-date").addEventListener("change", applyFilters);
+            
+            // ⭐ 自動根據選取的「開始日期」計算並填入該月份的最後一天至「結束日期」
+            document.getElementById("filter-start-date").addEventListener("change", (e) => {
+                const startDateVal = e.target.value;
+                if (startDateVal) {
+                    const [year, month] = startDateVal.split("-").map(Number);
+                    // 利用 Date 物件的特性 (月分設為下個月, 日期設為 0) 算出該月最後一天
+                    const lastDayDate = new Date(year, month, 0);
+                    const lastDay = String(lastDayDate.getDate()).padStart(2, "0");
+                    const formattedEndDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
+                    
+                    document.getElementById("filter-end-date").value = formattedEndDate;
+                }
+                applyFilters();
+            });
+
             document.getElementById("filter-end-date").addEventListener("change", applyFilters);
             document.getElementById("filter-tech").addEventListener("change", applyFilters);
             document.getElementById("filter-search").addEventListener("input", applyFilters);
