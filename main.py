@@ -58,7 +58,7 @@ def fetch_open_access_fulltext(pmid):
 def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3, delay=5):
     """使用 LLM 解析技術類型、樣本數、通訊作者國家與中文摘要 (優先使用 Full Text)"""
     if not GEMINI_API_KEY:
-        return ["others"], "未提及", "未知國家", "⚠️ 未設定 GEMINI_API_KEY"
+        return ["others"], "未提及", "未知國家", "未設定 GEMINI_API_KEY"
 
     has_fulltext = bool(fulltext)
     content_type_str = "內文全文" if has_fulltext else "標題與摘要"
@@ -74,16 +74,16 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
 4. metabolomics (代謝組學 / 代謝體學 / LC-MS, GC-MS 等代謝物分析)
 5. small genome (小型基因體 / 菌株全基因體完成圖 / viral/bacterial genome assembly)
 6. others (若不屬於上述五者，或無法明確判斷)
-⚠️ 若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
+若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
 
 任務二：擷取該研究的「研究樣本數量」（例如：n=50、120 位受試者、45 個糞便檢體、12 個小鼠模型、1,200 個基因體等）。
-⚠️ 請特別關注文章中的 Materials and Methods 或 Results 區塊。若文章完全未提及樣本數，請填寫「未提及」。
+請特別關注文章中的 Materials and Methods 或 Results 區塊。若文章完全未提及樣本數，請填寫「未提及」。
 
 任務三：請根據提供的作者機構資訊（Affiliation），判斷通訊作者（或主要研究團隊）來自的「國家/地區名稱」（特別關注是否包含 Taiwan、ROC、Taiwan R.O.C. 等，若為台灣請務必精準輸出 Taiwan；其餘請輸出英文國家名稱如 USA, China, Germany, Japan 等）。若完全無法判斷，請填寫「未知國家」。
 
 任務四：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現與臨床/科學意義）。
 
-⚠️【繁體中文與台灣生醫用語規範】（請務必嚴格遵循）：
+【繁體中文與台灣生醫用語規範】（請務必嚴格遵循）：
 必須完全使用「台灣繁體中文」的慣用語彙與用語習慣，嚴格禁止使用中國大陸的用語與譯名。請參考以下術語對照表進行翻譯：
 - metagenomics/metagenome：請使用「總體基因體/總體基因體學」（嚴禁使用：宏基因組）
 - metatranscriptomics：請使用「總體轉錄體/總體轉錄體學」（嚴禁使用：宏轉錄組）
@@ -92,6 +92,7 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
 - transcriptomics：請使用「轉錄體學」（嚴禁使用：轉錄組學）
 - proteomics：請使用「蛋白質體學」（嚴禁使用：蛋白質組學）
 - microbiome：請使用「微生物體/微生物群」（嚴禁使用：微生態）
+- multiomics：請使用「多體學」（嚴禁使用：多組學）
 - data：請使用「資料/數據」（優先使用：資料）
 - pathway：請使用「路徑/傳導路徑」（嚴禁使用：通路）
 - cohort：請使用「佇列/研究群體」（嚴禁使用：隊列）
@@ -282,15 +283,15 @@ def fetch_latest_pubmed_articles(keyword, if_map, max_results=15):
 
 def sync_database_to_excel(new_articles, db_path):
     print("\n--- [開始執行 Excel 儲存作業] ---")
-    print(f"📍 目標檔案路徑: {os.path.abspath(db_path)}")
-    print(f"📦 收到待存入論文數量: {len(new_articles)} 筆")
+    print(f"目標檔案路徑: {os.path.abspath(db_path)}")
+    print(f"收到待存入論文數量: {len(new_articles)} 筆")
 
     if not new_articles:
         if os.path.exists(db_path):
-            print("ℹ️ 無新論文，直接載入既有資料庫...")
+            print("無新論文，直接載入既有資料庫...")
             return pd.read_excel(db_path)
         
-        print("❌ 警告：傳入的論文陣列為空 (0 筆)，程式將強制建立一份測試 Excel 以確保檔案生成！")
+        print("警告：傳入的論文陣列為空 (0 筆)，程式將強制建立一份測試 Excel 以確保檔案生成！")
         dummy_df = pd.DataFrame([{
             "pmid": "00000000",
             "title": "無新論文（系統初始化）",
@@ -306,7 +307,7 @@ def sync_database_to_excel(new_articles, db_path):
             "url": "#"
         }])
         dummy_df.to_excel(db_path, index=False, engine="openpyxl")
-        print(f"✅ 已強制建立基礎 Excel 檔案：{db_path}")
+        print(f"已強制建立基礎 Excel 檔案：{db_path}")
         return dummy_df
 
     new_df = pd.DataFrame(new_articles)
@@ -319,7 +320,7 @@ def sync_database_to_excel(new_articles, db_path):
     new_df["pmid"] = new_df["pmid"].astype(str).str.strip()
 
     if os.path.exists(db_path):
-        print("ℹ️ 偵測到既有 Excel 檔案，進行資料合併與去重...")
+        print("偵測到既有 Excel 檔案，進行資料合併與去重...")
         try:
             existing_df = pd.read_excel(db_path)
             if "pmid" in existing_df.columns:
@@ -327,22 +328,22 @@ def sync_database_to_excel(new_articles, db_path):
             combined_df = pd.concat([new_df, existing_df], ignore_index=True)
             combined_df.drop_duplicates(subset=["pmid"], keep="first", inplace=True)
         except Exception as e:
-            print(f"⚠️ 讀取舊 Excel 失敗 ({e})，將直接覆寫新檔案。")
+            print(f"讀取舊 Excel 失敗 ({e})，將直接覆寫新檔案。")
             combined_df = new_df
     else:
-        print("ℹ️ 未發現既有檔案，準備建立全新 Excel 檔案...")
+        print("未發現既有檔案，準備建立全新 Excel 檔案...")
         combined_df = new_df
 
     combined_df.sort_values(by="date", ascending=False, inplace=True)
 
     try:
         combined_df.to_excel(db_path, index=False, engine="openpyxl")
-        print(f"🎉【成功】`{db_path}` 已成功寫入實體硬碟！總筆數：{len(combined_df)}")
+        print(f"【成功】`{db_path}` 已成功寫入實體硬碟！總筆數：{len(combined_df)}")
     except PermissionError:
-        print(f"❌【失敗】檔案 `{db_path}` 正在被 Excel 或其他軟體開啟中，請先關閉該檔案後再重新執行程式！")
+        print(f"【失敗】檔案 `{db_path}` 正在被 Excel 或其他軟體開啟中，請先關閉該檔案後再重新執行程式！")
         sys.exit(1)
     except Exception as e:
-        print(f"❌【寫入例外錯誤】: {e}")
+        print(f"【寫入例外錯誤】: {e}")
         sys.exit(1)
 
     return combined_df
@@ -568,7 +569,7 @@ HTML_TEMPLATE = """
 
             document.getElementById("filter-taiwan-only").addEventListener("change", applyFilters);
             
-            // ⭐ 自動根據選取的「開始日期」計算並填入該月份的最後一天至「結束日期」
+            // 自動根據選取的「開始日期」計算並填入該月份的最後一天至「結束日期」
             document.getElementById("filter-start-date").addEventListener("change", (e) => {
                 const startDateVal = e.target.value;
                 if (startDateVal) {
@@ -629,7 +630,7 @@ HTML_TEMPLATE = """
             renderArticles();
         }
 
-        // ⭐ 更新 Dashboard
+        // 更新 Dashboard
         function updateDashboard() {
             const techCounts = {
                 "16S": 0,
@@ -902,7 +903,7 @@ def main():
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("🎉 index.html 與 Excel 資料庫更新完成！")
+    print("index.html 與 Excel 資料庫更新完成！")
 
 
 if __name__ == "__main__":
