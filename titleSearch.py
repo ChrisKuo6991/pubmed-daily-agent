@@ -49,7 +49,7 @@ def fetch_open_access_fulltext(pmid):
 def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3, delay=5):
     """使用 LLM 解析技術類型、樣本數、通訊作者國家與中文摘要 (優先使用 Full Text)"""
     if not GEMINI_API_KEY:
-        return ["others"], "未提及", "未知國家", "⚠️ 未設定 GEMINI_API_KEY"
+        return ["others"], "未提及", "未知國家", "未設定 GEMINI_API_KEY"
 
     has_fulltext = bool(fulltext)
     content_type_str = "內文全文" if has_fulltext else "標題與摘要"
@@ -65,16 +65,16 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
 4. metabolomics (代謝組學 / 代謝體學 / LC-MS, GC-MS 等代謝物分析)
 5. small genome (小型基因體 / 菌株全基因體完成圖 / viral/bacterial genome assembly)
 6. others (若不屬於上述五者，或無法明確判斷)
-⚠️ 若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
+若論文中同時使用了兩種以上的技術，請將使用到的技術全數列出，並以半形逗號「,」分隔（例如：16S, metabolomics）。
 
 任務二：擷取該研究的「研究樣本數量」（例如：n=50、120 位受試者、45 個糞便檢體、12 個小鼠模型、1,200 個基因體等）。
-⚠️ 請特別關注文章中的 Materials and Methods 或 Results 區塊。若文章完全未提及樣本數，請填寫「未提及」。
+請特別關注文章中的 Materials and Methods 或 Results 區塊。若文章完全未提及樣本數，請填寫「未提及」。
 
 任務三：請根據提供的作者機構資訊（Affiliation），判斷通訊作者（或主要研究團隊）來自的「國家/地區名稱」（特別關注是否包含 Taiwan、ROC、Taiwan R.O.C. 等，若為台灣請務必精準輸出 Taiwan；其餘請輸出英文國家名稱如 USA, China, Germany, Japan 等）。若完全無法判斷，請填寫「未知國家」。
 
 任務四：撰寫一份「250字以內」的繁體中文重點解述（說明核心目的、主要發現與臨床/科學意義）。
 
-⚠️【繁體中文與台灣生醫用語規範】（請務必嚴格遵循）：
+【繁體中文與台灣生醫用語規範】（請務必嚴格遵循）：
 必須完全使用「台灣繁體中文」的慣用語彙與用語習慣，嚴格禁止使用中國大陸的用語與譯名。請參考以下術語對照表進行翻譯：
 - metagenomics/metagenome：請使用「總體基因體/總體基因體學」（嚴禁使用：宏基因組）
 - metatranscriptomics：請使用「總體轉錄體/總體轉錄體學」（嚴禁使用：宏轉錄組）
@@ -83,6 +83,7 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
 - transcriptomics：請使用「轉錄體學」（嚴禁使用：轉錄組學）
 - proteomics：請使用「蛋白質體學」（嚴禁使用：蛋白質組學）
 - microbiome：請使用「微生物體/微生物群」（嚴禁使用：微生態）
+- multiomics：請使用「多體學」（嚴禁使用：多組學）
 - data：請使用「資料/數據」（優先使用：資料）
 - pathway：請使用「路徑/傳導路徑」（嚴禁使用：通路）
 - cohort：請使用「佇列/研究群體」（嚴禁使用：隊列）
@@ -235,23 +236,23 @@ def fetch_articles_by_titles(titles, if_map):
                 if pmid not in processed_pmids:
                     found_pmids.append(pmid)
                     processed_pmids.add(pmid)
-                    print(f"  [{idx}/{len(titles)}] 找到 PMID: {pmid} 👈 標題：{clean_title[:50]}...")
+                    print(f"  [{idx}/{len(titles)}] 找到 PMID: {pmid} 標題：{clean_title[:50]}...")
                 else:
                     print(f"  [{idx}/{len(titles)}] PMID 重複 ({pmid})，跳過。")
             else:
-                print(f"  ⚠️ [{idx}/{len(titles)}] 在 PubMed 上未找到對應論文：{clean_title[:50]}...")
+                print(f" [{idx}/{len(titles)}] 在 PubMed 上未找到對應論文：{clean_title[:50]}...")
 
         except Exception as e:
-            print(f"  ❌ [{idx}/{len(titles)}] 搜尋發生錯誤: {e}")
+            print(f" [{idx}/{len(titles)}] 搜尋發生錯誤: {e}")
 
         time.sleep(0.3)  # 避免觸發 PubMed API 請求頻率限制
 
     if not found_pmids:
-        print("\n❌ 未能找到任何論文的 PMID，終止執行。")
+        print("\n未能找到任何論文的 PMID，終止執行。")
         return []
 
     # 步驟 2: 批次獲取 PubMed 文章詳細 XML
-    print(f"\n📦 共計取得 {len(found_pmids)} 筆不重複 PMID，開始抓取詳細內容與 AI 分析...")
+    print(f"\n 共計取得 {len(found_pmids)} 筆不重複 PMID，開始抓取詳細內容與 AI 分析...")
     fetch_res = requests.get(fetch_url, params={"db": "pubmed", "id": ",".join(found_pmids), "retmode": "xml"})
 
     root = ET.fromstring(fetch_res.content)
@@ -314,7 +315,7 @@ def sync_database_to_excel(new_articles, db_path):
 
     combined_df.sort_values(by="date", ascending=False, inplace=True)
     combined_df.to_excel(db_path, index=False, engine="openpyxl")
-    print(f"\n🎉【成功】歷史資料庫已更新！總計包含：{len(combined_df)} 筆論文。")
+    print(f"\n【成功】歷史資料庫已更新！總計包含：{len(combined_df)} 筆論文。")
     return combined_df
 
 
