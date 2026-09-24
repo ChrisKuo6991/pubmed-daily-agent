@@ -1,20 +1,19 @@
 name: Run PubMed Range Backfill
 
 on:
+  schedule:
+    # 每日 UTC 00:00 (台灣時間 08:00) 自動執行一次
+    - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
       start_date:
-        description: '開始日期 (格式 YYYY/MM/DD)'
-        required: true
+        description: '起始日期 (預設 2026/01/01，手動輸入可覆蓋全域設定)'
+        required: false
         default: '2026/01/01'
       end_date:
-        description: '結束日期 (格式 YYYY/MM/DD)'
-        required: true
-        default: '2026/01/31'
-      max_fetch:
-        description: '最多抓取筆數'
-        required: true
-        default: '100'
+        description: '結束日期 (預設 2026/03/01，手動輸入可覆蓋全域設定)'
+        required: false
+        default: '2026/03/01'
 
 jobs:
   backfill:
@@ -39,13 +38,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 執行補抓歷史資料腳本
+      # 執行單次 5 天區間的搜尋與進度更新
       - name: Run Backfill Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           START_DATE: ${{ github.event.inputs.start_date }}
           END_DATE: ${{ github.event.inputs.end_date }}
-          MAX_FETCH: ${{ github.event.inputs.max_fetch }}
         run: |
           python backfill.py
 
@@ -56,18 +54,19 @@ jobs:
         run: |
           python main.py
 
-      # 將更新後的 Excel 與 index.html 存回 GitHub
+      # 將更新後的 Excel、State 紀錄檔與 index.html 存回 GitHub
       - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          git add index.html papers_database.xlsx
+          # 將紀錄檔 backfill_state.json 一併加入版控
+          git add index.html papers_database.xlsx backfill_state.json
           
-          if git status --porcelain | grep -E "index.html|papers_database.xlsx"; then
-            git commit -m "chore: backfill pubmed papers (${{ github.event.inputs.start_date }} ~ ${{ github.event.inputs.end_date }}) [skip ci]"
+          if git status --porcelain | grep -E "index.html|papers_database.xlsx|backfill_state.json"; then
+            git commit -m "chore: auto backfill pubmed papers progress [skip ci]"
             git push origin HEAD:${{ github.ref }}
-            echo "✅ 歷史資料已成功補抓並推送至 GitHub！"
+            echo "✅ 歷史資料與進度已成功更新並推送至 GitHub！"
           else
             echo "ℹ️ 無新資料變動。"
           fi
