@@ -13,10 +13,10 @@ import requests
 # ---------------------------------------------------------------------------
 # 全域預設設定區 (若無環境變數傳入時使用)
 # ---------------------------------------------------------------------------
-DEFAULT_START_DATE = "2026/01/01"  # 總起始日期 (YYYY/MM/DD)
-DEFAULT_END_DATE   = "2026/03/01"  # 總結束日期 (YYYY/MM/DD)
-INTERVAL_DAYS     = 5             # 每次搜尋的天數跨度 (5 天)
-MAX_FETCH         = 50            # 每次搜尋的最大論文筆數 (50 篇)
+DEFAULT_START_DATE = "2025/01/01"  # 總起始日期 (YYYY/MM/DD)
+DEFAULT_END_DATE   = "2025/06/30"  # 總結束日期 (YYYY/MM/DD)
+INTERVAL_DAYS     = 6             # 每次搜尋的天數跨度 (6 天)
+MAX_FETCH         = 60            # 每次搜尋的最大論文筆數 (60 篇)
 STATE_FILE        = "backfill_state.json"  # 儲存進度的紀錄檔
 # ---------------------------------------------------------------------------
 
@@ -95,6 +95,7 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
 - transcriptomics：請使用「轉錄體學」（嚴禁使用：轉錄組學）
 - proteomics：請使用「蛋白質體學」（嚴禁使用：蛋白質組學）
 - microbiome：請使用「微生物體/微生物群」（嚴禁使用：微生態）
+- multiomics：請使用「多體學」（嚴禁使用：多組學）
 - data：請使用「資料/數據」（優先使用：資料）
 - pathway：請使用「路徑/傳導路徑」（嚴禁使用：通路）
 - cohort：請使用「佇列/研究群體」（嚴禁使用：隊列）
