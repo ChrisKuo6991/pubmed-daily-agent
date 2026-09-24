@@ -120,7 +120,7 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
                     model=model_name,
                     contents=prompt,
                 )
-                time.sleep(3)
+                time.sleep(8)
                 return response.text.strip()
             except Exception as e:
                 err_str = str(e).lower()
