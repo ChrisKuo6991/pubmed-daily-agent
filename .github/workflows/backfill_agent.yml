@@ -2,8 +2,8 @@ name: Run PubMed Range Backfill
 
 on:
   schedule:
-    # 每日 UTC 00:00 (台灣時間 08:00) 自動執行一次
-    - cron: '0 0 * * *'
+    # 台灣時間每日 01:00 (對應 UTC 時間前一日 17:00) 自動執行一次
+    - cron: '0 17 * * *'
   workflow_dispatch:
     inputs:
       start_date:
