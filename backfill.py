@@ -10,7 +10,16 @@ from google import genai
 import pandas as pd
 import requests
 
-# 搜尋關鍵字與設定
+# ---------------------------------------------------------------------------
+# 全域預設設定區 (若無環境變數傳入時使用)
+# ---------------------------------------------------------------------------
+DEFAULT_START_DATE = "2026/01/01"  # 總起始日期 (YYYY/MM/DD)
+DEFAULT_END_DATE   = "2026/03/01"  # 總結束日期 (YYYY/MM/DD)
+INTERVAL_DAYS     = 5             # 每次搜尋的天數跨度 (5 天)
+MAX_FETCH         = 50            # 每次搜尋的最大論文筆數 (50 篇)
+STATE_FILE        = "backfill_state.json"  # 儲存進度的紀錄檔
+# ---------------------------------------------------------------------------
+
 SEARCH_KEYWORDS = ["Microbio", "metagenome", "metagenomic"]
 SEARCH_TERM = " OR ".join(SEARCH_KEYWORDS)
 
@@ -197,7 +206,7 @@ def load_impact_factors_from_excel(file_path):
     return {}
 
 
-def fetch_range_pubmed_articles(keyword, start_date, end_date, if_map, max_results=100):
+def fetch_range_pubmed_articles(keyword, start_date, end_date, if_map, max_results=50):
     print(f"🔍 開始搜尋 PubMed 區間：{start_date} ~ {end_date}，預計上限：{max_results} 筆...")
 
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -282,12 +291,86 @@ def sync_database_to_excel(new_articles, db_path):
     return combined_df
 
 
+def generate_date_batches(start_str, end_str, interval_days=5):
+    """將總日期區間依照指定天數切分成多個小區間批次"""
+    start_dt = datetime.datetime.strptime(start_str, "%Y/%m/%d")
+    end_dt = datetime.datetime.strptime(end_str, "%Y/%m/%d")
+
+    batches = []
+    curr_dt = start_dt
+
+    while curr_dt <= end_dt:
+        batch_end_dt = curr_dt + datetime.timedelta(days=interval_days - 1)
+        if batch_end_dt > end_dt:
+            batch_end_dt = end_dt
+
+        batch_start_str = curr_dt.strftime("%Y/%m/%d")
+        batch_end_str = batch_end_dt.strftime("%Y/%m/%d")
+        batches.append((batch_start_str, batch_end_str))
+
+        curr_dt = batch_end_dt + datetime.timedelta(days=1)
+
+    return batches
+
+
+def load_or_init_state(start_date, end_date):
+    """讀取進度檔案，若不存在則重新建立進度表"""
+    batches = generate_date_batches(start_date, end_date, INTERVAL_DAYS)
+    
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                state = json.load(f)
+                # 若全域範圍沒變，沿用目前的索引 index
+                if state.get("start_date") == start_date and state.get("end_date") == end_date:
+                    return state, batches
+        except Exception as e:
+            print(f"⚠️ 讀取狀態檔失敗 ({e})，重新建立狀態。")
+
+    state = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "next_batch_index": 0,
+        "total_batches": len(batches)
+    }
+    return state, batches
+
+
+def save_state(state):
+    """將進度儲存回 JSON 檔案"""
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
+
+
 if __name__ == "__main__":
-    # 優先從系統環境變數讀取 (GitHub Actions 傳入)
-    start_date = os.environ.get("START_DATE", "2026/01/01")
-    end_date = os.environ.get("END_DATE", "2026/01/31")
-    max_fetch = int(os.environ.get("MAX_FETCH", "100"))
+    # 優先從環境變數讀取，若無則使用預設值
+    global_start = os.environ.get("START_DATE") or DEFAULT_START_DATE
+    global_end = os.environ.get("END_DATE") or DEFAULT_END_DATE
+
+    state, batches = load_or_init_state(global_start, global_end)
+    current_idx = state["next_batch_index"]
+
+    if current_idx >= len(batches):
+        print(f"🎉 所有人指定的日期區間（{global_start} ~ {global_end}）已全部執行完畢！無需再執行。")
+        sys.exit(0)
+
+    # 取得本次應執行的 5 天區間
+    b_start, b_end = batches[current_idx]
+    print(f"🚀 [進度 {current_idx + 1}/{len(batches)}] 今日自動執行區間：{b_start} ~ {b_end}")
 
     if_map = load_impact_factors_from_excel(EXCEL_IF_PATH)
-    articles = fetch_range_pubmed_articles(SEARCH_TERM, start_date, end_date, if_map, max_results=max_fetch)
+    articles = fetch_range_pubmed_articles(
+        keyword=SEARCH_TERM,
+        start_date=b_start,
+        end_date=b_end,
+        if_map=if_map,
+        max_results=MAX_FETCH
+    )
+
+    # 儲存 Excel 資料庫
     sync_database_to_excel(articles, DB_EXCEL_PATH)
+
+    # 更新進度至下一個區間並寫回 backfill_state.json
+    state["next_batch_index"] = current_idx + 1
+    save_state(state)
+    print(f"✅ 今日任務完成，進度已推進至第 {state['next_batch_index']}/{len(batches)} 個區間！")
