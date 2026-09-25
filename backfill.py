@@ -16,7 +16,7 @@ import requests
 DEFAULT_START_DATE = "2025/01/01"  # 總起始日期 (YYYY/MM/DD)
 DEFAULT_END_DATE   = "2025/06/30"  # 總結束日期 (YYYY/MM/DD)
 INTERVAL_DAYS     = 6             # 每次搜尋的天數跨度 (6 天)
-MAX_FETCH         = 60            # 每次搜尋的最大論文筆數 (60 篇)
+MAX_FETCH         = 50            # 每次搜尋的最大論文筆數 (60 篇)
 STATE_FILE        = "backfill_state.json"  # 儲存進度的紀錄檔
 # ---------------------------------------------------------------------------
 
@@ -120,7 +120,7 @@ def summarize_with_llm(title, abstract, affiliation="", fulltext=None, retries=3
                     model=model_name,
                     contents=prompt,
                 )
-                time.sleep(8)
+                time.sleep(10)
                 return response.text.strip()
             except Exception as e:
                 err_str = str(e).lower()
